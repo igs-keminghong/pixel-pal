@@ -483,7 +483,8 @@ function placeBubble(){requestAnimationFrame(()=>{const b=$('#bubble'),im=$('#pe
   const sideLeft=Math.round(sw*.47+iw*.42);b.style.left=sideLeft+'px';b.style.maxWidth=Math.max(110,sw-sideLeft-6)+'px';
   requestAnimationFrame(()=>{const nbh=b.offsetHeight;b.style.bottom=Math.max(6,Math.min(Math.round(ih*.45),sh-nbh-2))+'px'});});}
 addEventListener('resize',placeBubble);
-if(window.ResizeObserver)new ResizeObserver(()=>placeBubble()).observe($('#stage'));
+/* stage height settles only after data loads and the boot curtain lifts: re-size the mascot whenever it changes */
+let lastStageH=0;if(window.ResizeObserver)new ResizeObserver(()=>{const h=$('#stage').clientHeight;if(h&&h!==lastStageH){lastStageH=h;if($('#pet-img').getAttribute('src'))setPose(pose());else placeBubble()}}).observe($('#stage'));
 $('#pet-img').addEventListener('load',placeBubble);if(document.fonts)document.fonts.ready.then(placeBubble);
 function pose(){return st.mood||(sleeping()?'sleep':'idle')}
 function home(){bubble(homeLine());setPose(pose());
@@ -697,7 +698,7 @@ function pushRowHTML(){const s=pushState(),t=esc(st.time);
     unsupported:'這個瀏覽器不支援通知，請改用 Chrome 或 Safari。',
     denied:'通知被封鎖了。到手機的「設定 › 通知」找到這個 App 或瀏覽器，允許通知後再回來。',
     on:`已開啟，每晚 ${t} 提醒你明天的行程。`,off:`開啟後，每晚 ${t} 夥伴會傳通知提醒你。`}[s];
-  const btns=s==='on'?'<button class="btn wood" id="btn-push-test">測試</button><button class="btn wood" id="btn-push-off">關閉</button>':
+  const btns=s==='on'?'<button class="btn wood" id="btn-push-test">打聲招呼</button><button class="btn wood" id="btn-push-off">關閉</button>':
     s==='off'?'<button class="btn gold" id="btn-push-on">開啟通知</button>':'';
   return `<div><strong>每晚推播</strong><p>${info}</p></div><div class="actions" style="flex-wrap:nowrap">${btns}</div>`}
 function bindPush(){const on=$('#btn-push-on'),off=$('#btn-push-off'),test=$('#btn-push-test');
@@ -715,11 +716,11 @@ async function enablePush(){try{
 async function disablePush(){try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
     if(sub){await sb.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);await sub.unsubscribe()}
     st.pushOn=false;renderPush();toast('已關閉每晚提醒')}catch(e){toast('關閉失敗：'+(e.message||e))}}
-async function testPush(){try{toast('傳送中…');const {data:{session}}=await sb.auth.getSession();
+async function testPush(){try{toast(`正在叫${st.name}…`);const {data:{session}}=await sb.auth.getSession();
     const r=await fetch(SB_URL+'/functions/v1/nightly-reminder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({test:true})});
     const j=await r.json().catch(()=>({}));
     if(r.status===404)toast('還沒部署推播程式（nightly-reminder）');else if(!r.ok)toast('測試失敗：'+(j.error||r.status));
-    else toast(j.sent?'已送出，幾秒內會收到通知':'沒有找到這台裝置的訂閱，請先關閉再開啟一次');}
+    else toast(j.sent?`${st.name}馬上就來打招呼！`:'沒有找到這台裝置的訂閱，請先關閉再開啟一次');}
   catch(e){toast('測試失敗：'+(e.message||e))}}
 async function syncPush(){if(!pushSupported()||(isIOS&&!standalone()))return;try{
     const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
