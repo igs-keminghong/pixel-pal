@@ -74,6 +74,8 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 
 /* ---------- stage ---------- */
 .stage{position:relative;flex:1 1 auto;min-height:190px}
+.app.booting main,.app.booting nav,.app.booting .sign .d,.app.booting .sign .streak{visibility:hidden}
+.cal-err{margin:0;padding:6px 10px;border-radius:8px;background:#FBE0D2;border:2px solid #D9805A;color:#7A2E12;font-size:13px}
 .pet{position:absolute;left:47%;bottom:6px;transform:translateX(-50%);border:0;background:none;padding:0;display:flex;align-items:flex-end;justify-content:center}
 .pet::before{content:"";position:absolute;left:14%;right:14%;bottom:-5px;height:14px;border-radius:50%;background:rgba(28,52,12,.38);box-shadow:0 0 0 4px rgba(28,52,12,.14)}
 .pet img{position:relative;display:block;height:auto}
@@ -216,7 +218,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
 </head>
 <body>
 
-<div class="app" id="app">
+<div class="app booting" id="app">
   <header class="top gut">
     <div class="sign">
       <img class="ic" src="assets/ic_cal.png" alt="">
@@ -387,7 +389,7 @@ function petImg(p,a='idle'){const im=new Image();im.src=art(PETS[p]?p:'shiba',a)
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
-  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null)};
+  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null};
 if(!st.name)st.name=PETS[st.pet].def;
 
 function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -454,6 +456,7 @@ function placeBubble(){requestAnimationFrame(()=>{const b=$('#bubble'),im=$('#pe
   const sideLeft=Math.round(sw*.47+iw*.42);b.style.left=sideLeft+'px';b.style.maxWidth=Math.max(110,sw-sideLeft-6)+'px';
   requestAnimationFrame(()=>{const nbh=b.offsetHeight;b.style.bottom=Math.max(6,Math.min(Math.round(ih*.45),sh-nbh-2))+'px'});});}
 addEventListener('resize',placeBubble);
+if(window.ResizeObserver)new ResizeObserver(()=>placeBubble()).observe($('#stage'));
 $('#pet-img').addEventListener('load',placeBubble);if(document.fonts)document.fonts.ready.then(placeBubble);
 function pose(){return st.mood||(sleeping()?'sleep':'idle')}
 function home(){bubble(sleeping()?'Zzz……（明天的事，明天再說）':line());setPose(pose());
@@ -504,7 +507,12 @@ async function loadEvents(){const [t0,t1]=range7();
 async function syncCalendar(){const tok=gtoken();if(!tok)return 'no-token';const [t0,t1]=range7();
   const q=new URLSearchParams({timeMin:t0.toISOString(),timeMax:t1.toISOString(),singleEvents:'true',orderBy:'startTime',maxResults:'250'});
   const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?'+q,{headers:{Authorization:'Bearer '+tok}});
-  if(r.status===401||r.status===403){try{sessionStorage.removeItem('ppal2:gtok')}catch(e){}return 'no-token'}
+  const clearTok=()=>{try{sessionStorage.removeItem('ppal2:gtok')}catch(e){}};
+  if(r.status===401){clearTok();return 'no-token'}
+  if(r.status===403){let reason='';try{const ej=await r.json();const er=ej.error||{};reason=(er.errors&&er.errors[0]&&er.errors[0].reason)||er.status||er.message||''}catch(e){}
+    if(/insufficient|scope/i.test(reason)){clearTok();return 'no-scope'}
+    if(/accessNotConfigured|SERVICE_DISABLED|has not been used|disabled/i.test(reason))throw new Error('API_DISABLED');
+    throw new Error('Google 日曆拒絕存取（'+(reason||403)+'）')}
   if(!r.ok)throw new Error('Google 日曆回應 '+r.status);
   const j=await r.json();
   const rows=(j.items||[]).filter(e=>e.status!=='cancelled'&&e.start).map(e=>({user_id:ME,google_id:e.id,
@@ -516,10 +524,14 @@ async function syncCalendar(){const tok=gtoken();if(!tok)return 'no-token';const
   st.lastSync=new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});save('lastSync',st.lastSync);
   save('calLinked',true);return rows.length;}
 const calLinked=()=>!!load('calLinked',false);
-async function doSync(manual){try{const n=await syncCalendar();
-    if(n==='no-token'){if(manual)connectCalendar();return}
-    await loadEvents();refreshAll();account();if(manual)toast(`已同步 ${n} 個行程`)}
-  catch(e){toast('同步失敗：'+(e.message||e))}}
+/* manual: user pressed the button. afterConnect: we just came back from Google's consent screen — never redirect again from here (no loops) */
+function calError(msg){st.calErr=msg;account();if(msg){go('set');toast('日曆連結沒有成功，請看下方說明');requestAnimationFrame(()=>{const e=$('.cal-err');if(e)e.scrollIntoView({block:'center',behavior:'smooth'})})}}
+async function doSync(manual,afterConnect){st.calErr=null;try{const n=await syncCalendar();
+    if(n==='no-token'){if(afterConnect)calError('Google 沒有回傳日曆權限。請再按一次「連結日曆」；如果一直出現這個訊息，請截圖給開發者。');else if(manual)connectCalendar();return}
+    if(n==='no-scope'){calError('授權時沒有勾選「查看你的日曆」。再按一次「連結日曆」，在 Google 的授權畫面把日曆那一項打勾，再按「繼續」。');return}
+    await loadEvents();refreshAll();account();if(manual||afterConnect)toast(`已同步 ${n} 個行程`)}
+  catch(e){if(e.message==='API_DISABLED')calError('Google Cloud 專案還沒啟用 Google Calendar API。到 APIs & Services → Library 搜尋「Google Calendar API」按「啟用」，等 1～2 分鐘後再按「同步日曆」。');
+    else calError('同步失敗：'+(e.message||e))}}
 
 /* ---------- friends ---------- */
 const FRIENDS=load('friends',[
@@ -646,7 +658,7 @@ $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scen
 function account(){const box=$('#acct');
   if(isLive()){const nm=PROFILE?PROFILE.display_name:'';const em=USER?USER.email:'';
     box.innerHTML=`<div class="conn"><div><strong>${esc(nm)}</strong><p>${esc(em)}</p></div><button class="btn wood" id="btn-logout">登出</button></div>
-      <div class="conn"><div><strong>Google 日曆</strong><p>${calLinked()?'上次同步 '+esc(st.lastSync||'—'):'未連結，連結後夥伴才能提醒行程'}</p></div><button class="btn gold" id="btn-sync">${calLinked()?'同步日曆':'連結日曆'}</button></div>
+      <div class="conn"><div><strong>Google 日曆</strong><p>${calLinked()?'上次同步 '+esc(st.lastSync||'—'):'未連結，連結後夥伴才能提醒行程'}</p></div><button class="btn gold" id="btn-sync">${calLinked()?'同步日曆':'連結日曆'}</button></div>${st.calErr?`<p class="cal-err">${esc(st.calErr)}</p>`:''}
       <div class="conn"><div><strong>每晚推播</strong><p>下一步開放</p></div><span class="tag">即將推出</span></div>`;
     $('#btn-logout').onclick=async()=>{save('calLinked',false);save('lastSync',null);await sb.auth.signOut();try{sessionStorage.clear()}catch(e){}location.reload()};
     $('#btn-sync').onclick=()=>doSync(true);
@@ -687,15 +699,16 @@ async function connectCalendar(){if(!sb)return;try{sessionStorage.setItem('ppal2
 $('#btn-login').addEventListener('click',signIn);
 $('#btn-demo').addEventListener('click',()=>{$('#login').hidden=true;startDemo()});
 $('#demo-chip').addEventListener('click',()=>{$('#login').hidden=false});
-function startDemo(){MODE='demo';$('#demo-chip').hidden=false;settings();refreshAll();friends();}
+function startDemo(){MODE='demo';$('#demo-chip').hidden=false;settings();refreshAll();friends();$('#app').classList.remove('booting');}
 async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=session.user;ME=USER.id;$('#login').hidden=true;keepToken(session.provider_token);
   FRIENDS.length=0;Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};st.liveEv=[];
   const p=await sb.from('profiles').select('*').eq('id',ME).single();
   if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
     save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;}
   settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();
+  $('#app').classList.remove('booting');
   let want=false;try{want=sessionStorage.getItem('ppal2:wantCal')==='1';sessionStorage.removeItem('ppal2:wantCal')}catch(e){}
-  if(gtoken()&&(want||calLinked()))doSync(want);}
+  if(want)doSync(true,true);else if(gtoken()&&calLinked())doSync(false);}
 async function boot(){
   header();applyScene();home();go('home');requestAnimationFrame(()=>setPose(pose()));if(!reduce)setInterval(frame,520);
   if(!sb){startDemo();return}
