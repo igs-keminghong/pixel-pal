@@ -110,6 +110,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 .row.past{opacity:.45}
 .row .next{font-style:normal;font-family:var(--f-pixel);font-size:11px;font-weight:400;background:var(--gold);color:#5A2E10;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:1px}
 .plaque .swap{font-size:12px;opacity:.85;margin-left:2px}
+.plaque:active{transform:translate(-50%,2px)}
 .empty{color:var(--muted);font-size:14px;margin:4px 2px}
 .chk{width:24px;height:24px;border:3px solid var(--shade);background:var(--field);border-radius:6px;padding:0}
 .chk[aria-checked="true"]{background:var(--gold) url(assets/star.png) center/16px no-repeat}
@@ -377,7 +378,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const SB_URL='https://oqdizogpzqqxxlbfymfk.supabase.co';
 const SB_KEY='sb_publishable_3PSolGhZ6Z7jy_GJY9N9zw_QEdiys_H';   // publishable key: safe to ship in the page
 const CAL_SCOPE='https://www.googleapis.com/auth/calendar.readonly';
-const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}):null;
+const sb=window.supabase&&!window.PIXELPAL_PREVIEW?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}):null;
 let MODE='demo', ME=null, USER=null, PROFILE=null;
 const isLive=()=>MODE==='live';
 
@@ -726,7 +727,7 @@ async function connectCalendar(){if(!sb)return;try{sessionStorage.setItem('ppal2
 $('#btn-login').addEventListener('click',signIn);
 $('#btn-demo').addEventListener('click',()=>{$('#login').hidden=true;startDemo()});
 $('#demo-chip').addEventListener('click',()=>{$('#login').hidden=false});
-function startDemo(){MODE='demo';$('#demo-chip').hidden=false;settings();refreshAll();friends();$('#app').classList.remove('booting');}
+function startDemo(){MODE='demo';$('#demo-chip').hidden=!!window.PIXELPAL_PREVIEW;settings();refreshAll();friends();$('#app').classList.remove('booting');}
 async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=session.user;ME=USER.id;$('#login').hidden=true;keepToken(session.provider_token);
   FRIENDS.length=0;Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};st.liveEv=[];
   const p=await sb.from('profiles').select('*').eq('id',ME).single();
