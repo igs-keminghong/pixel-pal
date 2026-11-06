@@ -60,8 +60,8 @@ img{-webkit-user-drag:none}
 
 /* ---------- header sign ---------- */
 header.top{display:flex;justify-content:center;padding-top:0;flex:0 0 auto}
-.sign{width:min(100%,400px);aspect-ratio:1028/343;background:url(assets/sign.png) center/100% 100% no-repeat;
-  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:19% 11% 3.5%;margin-top:-4px}
+.sign{width:min(100%,400px);aspect-ratio:1028/327;background:url(assets/sign.png) center/100% 100% no-repeat;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;padding:14.7% 10.5% 6.1%;margin-top:-4px}
 .sign .ic{height:clamp(28px,8.6vw,36px)}
 .sign .d{font-family:var(--f-pixel);color:var(--cream);text-shadow:0 2px 0 var(--shade);font-size:clamp(14px,4.3vw,20px);line-height:1.15;min-width:0;white-space:nowrap}
 .sign .d small{display:block;font-size:12px;opacity:.9;letter-spacing:.04em}
@@ -87,6 +87,7 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
   border-image:url(assets/bubble_body.png) 60 fill / 17px stretch;
   padding:0 6px;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .bubble{text-align:center}
+.bubble .nw{white-space:nowrap}
 .bubble .tail{position:absolute;top:calc(100% + 8px);left:20px;width:23px;height:auto;pointer-events:none}
 .bubble b{font-family:var(--f-pixel);font-weight:400;color:#A6431C;font-size:13px;margin-right:5px}
 .float-heart{position:absolute;width:26px;pointer-events:none;animation:floaty 1.2s steps(6) forwards}
@@ -461,7 +462,7 @@ function line(){const p=st.pet,day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
 function homeLine(){if(!sleeping())return line();const tn=tonight();
   return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
 const TAP={parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
-function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
+function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[st.pet].h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize();const src=art(st.pet,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
   const h=Math.round(PETS[st.pet].h[pose]*k);im.style.height=h+'px';
