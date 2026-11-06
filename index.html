@@ -107,6 +107,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 .row .ti span{display:block;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row.done .ti strong{text-decoration:line-through;color:var(--muted)}
 .row.done{opacity:.75}
+.row.past{opacity:.45}
+.row .next{font-style:normal;font-family:var(--f-pixel);font-size:11px;font-weight:400;background:var(--gold);color:#5A2E10;border-radius:6px;padding:0 6px;margin-left:6px;vertical-align:1px}
+.plaque .swap{font-size:12px;opacity:.85;margin-left:2px}
 .empty{color:var(--muted);font-size:14px;margin:4px 2px}
 .chk{width:24px;height:24px;border:3px solid var(--shade);background:var(--field);border-radius:6px;padding:0}
 .chk[aria-checked="true"]{background:var(--gold) url(assets/star.png) center/16px no-repeat}
@@ -236,7 +239,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
         <button class="pet" id="pet" aria-label="摸摸吉祥物"><img id="pet-img" alt=""></button>
       </div>
       <div class="panel frame">
-        <div class="plaque btn wood"><img src="assets/ic_cal.png" alt=""><span id="tmr-h">明天</span></div>
+        <button class="plaque btn wood" id="day-toggle" aria-label="切換今天或明天的行程"><img src="assets/ic_cal.png" alt=""><span id="tmr-h">明天</span><span class="swap" aria-hidden="true">⇄</span></button>
         <div class="inner" id="tmr-list"></div>
       </div>
     </section>
@@ -389,7 +392,7 @@ function petImg(p,a='idle'){const im=new Image();im.src=art(PETS[p]?p:'shiba',a)
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
-  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null};
+  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null,dayPick:null};
 if(!st.name)st.name=PETS[st.pet].def;
 
 function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -412,10 +415,10 @@ function allEv(){const list=isLive()?st.liveEv:SEED.map(e=>({...e,d:dkey(e.o)}))
 const evOn=k=>allEv().filter(e=>e.d===k);
 function catIcon(e){const t=e.title||'';if(/餐|吃|飯|鍋|咖啡|早午|午餐|晚餐|聚餐/.test(t))return 'ic_food';if(/山|步道|散步|健身|跑|爬|游泳|球/.test(t))return 'ic_mount';
   if(/生日|約會|紀念/.test(t))return 'ic_heart';if(e.cal==='work'||/會議|週會|提案|開會|面試|meeting|sync/i.test(t))return 'ic_bag';return 'ic_cal'}
-function rowHTML(e,withChk){return `<div class="row ${withChk?'sch':''} ${st.done[e.id]?'done':''}">
+function rowHTML(e,withChk,o={}){return `<div class="row ${withChk?'sch':''} ${st.done[e.id]?'done':''} ${o.past?'past':''}">
   ${withChk?`<button class="chk" role="checkbox" aria-checked="${!!st.done[e.id]}" aria-label="完成 ${esc(e.title)}" data-id="${esc(e.id)}"></button>`:'<img class="ck" src="assets/ic_clock.png" alt="">'}
   <span class="t">${esc(e.t)}</span><span class="sep"></span><img class="cat" src="assets/${catIcon(e)}.png" alt="">
-  <div class="ti"><strong>${esc(e.title)}</strong>${e.loc?`<span>${esc(e.loc)}</span>`:''}</div></div>`}
+  <div class="ti"><strong>${esc(e.title)}${o.next?'<em class="next">下一個</em>':''}</strong>${e.loc?`<span>${esc(e.loc)}</span>`:''}</div></div>`}
 
 /* ---------- scene / time of day ---------- */
 function sceneNow(){if(st.scene!=='auto')return st.scene;const h=new Date().getHours();return h>=6&&h<17?'day':h>=17&&h<19?'dusk':'night'}
@@ -430,11 +433,32 @@ function header(){const k=dkey(0);const [,m,d]=k.split('-').map(Number);
   $('#hdr-sub').textContent=`今天 ${evOn(k).length} 件事`;$('#streak-n').textContent=`${streak()} 天`;}
 
 /* ---------- mascot ---------- */
-function line(){const tm=evOn(dkey(1)),n=tm.length,f=tm[0],p=st.pet,ft=f&&(f.t==='整天'?'整天':f.t);
-  if(isLive()&&!calLinked()&&!n)return p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你明天的行程！\n去設定連結日曆吧！':'我還不知道你明天要幹嘛。\n去設定連結日曆。';
-  if(p==='parrot')return n?`明天！明天！${n} 件事！\n${ft}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
-  if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${ft}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
-  return n?`哼，明天 ${n} 件事。\n${ft}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
+/* ---------- which day the home panel shows (device clock, midnight boundary) ---------- */
+function startOf(e){if(e.t==='整天')return null;const [y,m,d]=e.d.split('-').map(Number);const [h,mi]=e.t.split(':').map(Number);return new Date(y,m-1,d,h,mi)}
+const isPast=e=>{const t=startOf(e);return !!t&&t<=new Date()};
+function remindAt(){const [h,m]=(st.time||'21:00').split(':').map(Number);const r=new Date();r.setHours(h,m,0,0);return r}
+/* timed events still ahead tonight (only meaningful in the evening, not after midnight) */
+function tonight(){if(new Date().getHours()<6)return [];return evOn(dkey(0)).filter(e=>e.t!=='整天'&&!isPast(e))}
+function autoDay(){const today=evOn(dkey(0));if(new Date()>=remindAt())return 1;
+  if(!today.some(e=>e.t==='整天'||!isPast(e)))return 1;return 0}
+function panelDay(){return st.dayPick!=null?st.dayPick:autoDay()}
+function line(){const p=st.pet,day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
+  const today=evOn(dkey(0)),tm=evOn(dkey(1)),n=tm.length,f=tm[0];
+  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
+  if(day===0){const up=today.filter(e=>e.t!=='整天'&&!isPast(e)),nx=up[0]||today.find(e=>e.t==='整天'),r=up.length;
+    if(!nx)return p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
+    if(p==='parrot')return `下一個！下一個！\n${T(nx)}「${nx.title}」啾！`;
+    if(p==='beagle')return `嗅嗅！下一個是 ${T(nx)}「${nx.title}」！\n${r>1?`今天還有 ${r} 件事！`:'今天最後一件了！'}`;
+    return `哼，下一個是 ${T(nx)}「${nx.title}」。\n${r>1?`今天還剩 ${r} 件事。`:'今天就剩這件了。'}`;}
+  const tn=tonight(),k=tn.length;
+  if(k){const head=k>1?`今晚還有 ${k} 件事，下一個 ${tn[0].t}「${tn[0].title}」！`:`今晚還有 ${tn[0].t}「${tn[0].title}」！`;
+    const tail=n?(p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
+    return head+'\n'+tail;}
+  if(p==='parrot')return n?`明天！明天！${n} 件事！\n${T(f)}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
+  if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${T(f)}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
+  return n?`哼，明天 ${n} 件事。\n${T(f)}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
+function homeLine(){if(!sleeping())return line();const tn=tonight();
+  return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
 const TAP={parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[st.pet].h.idle}
@@ -459,11 +483,14 @@ addEventListener('resize',placeBubble);
 if(window.ResizeObserver)new ResizeObserver(()=>placeBubble()).observe($('#stage'));
 $('#pet-img').addEventListener('load',placeBubble);if(document.fonts)document.fonts.ready.then(placeBubble);
 function pose(){return st.mood||(sleeping()?'sleep':'idle')}
-function home(){bubble(sleeping()?'Zzz……（明天的事，明天再說）':line());setPose(pose());
-  const k=dkey(1);$('#tmr-h').textContent=`明天 · 週${WK[new Date(Date.now()+864e5).getDay()]}`;
-  const tm=evOn(k);$('#tmr-list').innerHTML=tm.length?tm.map(e=>rowHTML(e,false)).join(''):
-    (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你明天的行程。</p>':'<p class="empty">明天沒有行程，好好休息。</p>');}
-function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(sleeping()?'Zzz……':line())},ms)}
+function home(){bubble(homeLine());setPose(pose());
+  const day=panelDay(),dt=new Date();dt.setDate(dt.getDate()+day);
+  $('#tmr-h').textContent=`${day?'明天':'今天'} · 週${WK[dt.getDay()]}`;
+  const list=evOn(dkey(day)),nx=day===0?list.find(e=>e.t!=='整天'&&!isPast(e)):null;
+  $('#tmr-list').innerHTML=list.length?list.map(e=>rowHTML(e,false,{past:day===0&&isPast(e),next:nx&&e.id===nx.id})).join(''):
+    (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你行程。</p>':`<p class="empty">${day?'明天':'今天'}沒有行程，好好休息。</p>`);}
+$('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
+function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(homeLine())},ms)}
 $('#pet').addEventListener('click',()=>{const p=$('#pet');p.classList.remove('jump');void p.offsetWidth;p.classList.add('jump');
   mood('happy',1600);const arr=TAP[st.pet];bubble(arr[Math.floor(Math.random()*arr.length)]);
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
@@ -653,7 +680,7 @@ function settings(){const box=$('#pets');box.innerHTML='';
     box.appendChild(b)});
   $('#set-name').value=st.name;if(![...$('#set-time').options].some(x=>x.value===st.time))$('#set-time').add(new Option(st.time,st.time));$('#set-time').value=st.time;$('#set-scene').value=st.scene;account();}
 $('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[st.pet].def;save('name',st.name);home();saveProfile()});
-$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();toast(`每晚 ${st.time} 提醒你`)});
+$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();home();toast(`每晚 ${st.time} 提醒你`)});
 $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scene',st.scene);home();toast('場景已切換，回到「夥伴」看看')});
 function account(){const box=$('#acct');
   if(isLive()){const nm=PROFILE?PROFILE.display_name:'';const em=USER?USER.email:'';
@@ -676,7 +703,7 @@ $('#btn-preview').addEventListener('click',()=>{go('home');const tm=evOn(dkey(1)
 $('#notif').addEventListener('click',()=>$('#notif').classList.remove('show'));
 
 /* ---------- tabs ---------- */
-function go(tab){st.tab=tab;$('#app').dataset.tab=tab;$$('nav.tabs button').forEach(b=>{const on=b.dataset.tab===tab;b.setAttribute('aria-selected',on);b.className=on?'gold':'wood'});
+function go(tab){if(tab!=='home')st.dayPick=null;st.tab=tab;$('#app').dataset.tab=tab;$$('nav.tabs button').forEach(b=>{const on=b.dataset.tab===tab;b.setAttribute('aria-selected',on);b.className=on?'gold':'wood'});
   ['home','sched','friends','set'].forEach(t=>$('#v-'+t).hidden=t!==tab);document.querySelector('main').scrollTop=0;applyScene();if(tab==='home')setPose(pose());}
 $$('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
 function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200)}
@@ -685,7 +712,7 @@ function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show')
 let tick=0;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function blink(){if(st.tab!=='home'||st.mood||sleeping())return;const im=$('#pet-img');im.setAttribute('src',art(st.pet,'blink'));
   setTimeout(()=>{if(!st.mood&&im.getAttribute('src')===art(st.pet,'blink'))im.setAttribute('src',art(st.pet,pose()))},170)}
-function frame(){tick++;if(tick%8===5||tick%23===0)blink();$('#pet').classList.toggle('bob',!st.mood&&!sleeping()&&tick%2===1);if(tick%60===0){applyScene();if(!st.mood)setPose(pose())}}
+function frame(){tick++;if(tick%8===5||tick%23===0)blink();$('#pet').classList.toggle('bob',!st.mood&&!sleeping()&&tick%2===1);if(tick%60===0){applyScene();header();if(!st.mood&&st.tab==='home')home()}}
 
 /* ---------- sign in / start ---------- */
 async function signIn(){if(!sb){toast('目前連不到伺服器，請稍後再試');return}
@@ -704,7 +731,8 @@ async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=s
   FRIENDS.length=0;Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};st.liveEv=[];
   const p=await sb.from('profiles').select('*').eq('id',ME).single();
   if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
-    save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;}
+    save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;
+    const tz=(Intl.DateTimeFormat().resolvedOptions()||{}).timeZone;if(tz&&PROFILE.timezone!==tz)sb.from('profiles').update({timezone:tz}).eq('id',ME).then(()=>{PROFILE.timezone=tz});}
   settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();
   $('#app').classList.remove('booting');
   let want=false;try{want=sessionStorage.getItem('ppal2:wantCal')==='1';sessionStorage.removeItem('ppal2:wantCal')}catch(e){}
