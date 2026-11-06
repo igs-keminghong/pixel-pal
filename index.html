@@ -197,6 +197,18 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
 .toast{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);z-index:70;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.show{opacity:1}
 @media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.login{position:absolute;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:space-between;gap:12px;padding:0 16px 22px;
+  background:var(--scene) url(assets/bg_day.webp) center top/cover no-repeat;image-rendering:pixelated}
+.login img{image-rendering:auto}
+.login-sign{grid-template-columns:auto 1fr auto}
+.login-sign .d{font-size:clamp(17px,5.4vw,22px)}
+.login-pet{width:min(46vw,190px);height:auto;filter:drop-shadow(0 8px 0 rgba(28,52,12,.25));animation:hop 1.6s steps(4) infinite}
+@keyframes hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.login-card{width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px;text-align:center}
+.login-card p{margin:0;font-size:14px}
+.login-card .btn{min-height:30px;font-size:16px}
+.login-card .fine{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){.login-pet{animation:none}}
 </style>
 </head>
 <body>
@@ -206,7 +218,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
     <div class="sign">
       <img class="ic" src="assets/ic_cal.png" alt="">
       <div class="d" id="hdr-date">—<small id="hdr-sub"></small></div>
-      <div class="streak" title="連續打開天數"><img src="assets/star.png" alt="">4 天</div>
+      <div class="streak" title="連續打開天數"><img src="assets/star.png" alt=""><span id="streak-n">1 天</span></div>
     </div>
   </header>
 
@@ -232,7 +244,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
       </div>
       <div id="sched-list" class="stack"></div>
       <div class="actions"><button class="btn gold" id="btn-add">＋ 新增行程</button></div>
-      <p class="note card">正式版會讀取你的 Google 日曆；iPhone 在「設定 › 日曆 › 帳號」加入同一個 Google 帳號，Apple 日曆也會同步顯示。</p>
+      <p class="note card" id="sched-note"></p>
     </section>
 
     <!-- 好友 -->
@@ -262,19 +274,15 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
           <div class="field"><label for="set-name">夥伴的名字</label><input class="field-in" id="set-name" type="text" maxlength="8"></div>
           <div class="two">
             <div class="field"><label for="set-time">每晚提醒</label>
-              <select class="field-in" id="set-time"><option>20:00</option><option selected>21:00</option><option>22:00</option><option>23:00</option></select></div>
+              <select class="field-in" id="set-time"><option>19:00</option><option>19:30</option><option>20:00</option><option>20:30</option><option selected>21:00</option><option>21:30</option><option>22:00</option><option>22:30</option><option>23:00</option><option>23:30</option></select></div>
             <div class="field"><label for="set-scene">場景</label>
               <select class="field-in" id="set-scene"><option value="auto">依時間自動</option><option value="day">白天</option><option value="dusk">黃昏</option><option value="night">夜晚</option></select></div>
           </div>
           <div class="actions"><button class="btn gold" id="btn-preview"><img src="assets/ic_mail.png" alt="">預覽今晚的提醒</button></div>
         </div>
       </div>
-      <div class="card stack">
-        <div class="conn"><div><strong>Google 日曆</strong><p>讀取今天到未來 7 天的行程</p></div><span class="tag">第二階段</span></div>
-        <div class="conn"><div><strong>推播通知</strong><p>iPhone 需先「加入主畫面」</p></div><span class="tag">第二階段</span></div>
-        <div class="conn"><div><strong>好友同步</strong><p>訊息與圖片存在 Supabase</p></div><span class="tag">第二階段</span></div>
-      </div>
-      <p class="note card">目前是前端原型：行程與好友是示範資料，你新增的內容只存在這台裝置的瀏覽器。</p>
+      <div class="card stack" id="acct"></div>
+      <p class="note card" id="mode-note"></p>
     </section>
   </main>
 
@@ -328,6 +336,18 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
     <p id="viewer-hint">若無法下載，請長按圖片儲存。</p>
   </div>
 
+  <!-- sign in -->
+  <div class="login" id="login" hidden>
+    <div class="sign login-sign"><img class="ic" src="assets/ic_cal.png" alt=""><div class="d">像素行程夥伴<small>每晚提醒你明天的行程</small></div><img class="ic" src="assets/star.png" alt=""></div>
+    <img class="login-pet" src="assets/shiba_happy.png" alt="">
+    <div class="card login-card">
+      <p>用 Google 帳號登入後，夥伴會讀取你的 Google 日曆，每晚提醒你明天的行程，也能和好友傳訊息。</p>
+      <button class="btn gold" id="btn-login"><img src="assets/ic_cal.png" alt="">用 Google 登入</button>
+      <button class="btn wood" id="btn-demo">先看看示範</button>
+      <p class="fine">只會讀取日曆，不會修改或刪除你的行程。</p>
+    </div>
+  </div>
+
   <div class="notif card" id="notif" role="status">
     <div class="ico" id="notif-ico"></div>
     <div><strong><span id="notif-who"></span><em id="notif-time"></em></strong><p id="notif-text"></p></div>
@@ -335,29 +355,39 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
   <div class="toast btn wood" id="toast"></div>
 </div>
 
+<script src="vendor/supabase-2.118.0.js"></script>
 <script>
 (function(){
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const load=(k,d)=>{try{const v=localStorage.getItem('ppal2:'+k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem('ppal2:'+k,JSON.stringify(v))}catch(e){}};
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- mascots (AI art, cut from animal_action.png) ---------- */
+/* ---------- Supabase ---------- */
+const SB_URL='https://oqdizogpzqqxxlbfymfk.supabase.co';
+const SB_KEY='sb_publishable_3PSolGhZ6Z7jy_GJY9N9zw_QEdiys_H';   // publishable key: safe to ship in the page
+const CAL_SCOPE='https://www.googleapis.com/auth/calendar.readonly';
+const sb=window.supabase?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}):null;
+let MODE='demo', ME=null, USER=null, PROFILE=null;
+const isLive=()=>MODE==='live';
+
+/* ---------- mascots ---------- */
 const PETS={
   shiba:{label:'柴犬',def:'小柴',h:{idle:256,happy:258,sleep:208,alert:252}},
   beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
   parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}}};
 const art=(p,a)=>`assets/${p}_${a}.png`;
 Object.keys(PETS).forEach(p=>['idle','happy','sleep','alert','blink'].forEach(a=>{new Image().src=art(p,a)}));
-function petImg(p,a='idle'){const im=new Image();im.src=art(p,a);im.alt='';return im}
+function petImg(p,a='idle'){const im=new Image();im.src=art(PETS[p]?p:'shiba',a);im.alt='';return im}
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
-  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null};
+  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null)};
 if(!st.name)st.name=PETS[st.pet].def;
 
-function dkey(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function dkey(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return dkeyOf(d)}
+const hhmm=d=>String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 const WK='日一二三四五六';
 function dlabel(k){const [y,m,d]=k.split('-').map(Number);const dt=new Date(y,m-1,d);return `${m}月${d}日 週${WK[dt.getDay()]}`}
 const SEED=[
@@ -370,13 +400,14 @@ const SEED=[
   {id:'s7',o:2,t:'10:00',title:'新專案提案',loc:'線上會議',cal:'work'},
   {id:'s8',o:3,t:'19:00',title:'跟阿哲吃火鍋',loc:'公館',cal:'life'},
   {id:'s9',o:5,t:'20:00',title:'線上桌遊夜',loc:'Discord',cal:'life'}];
-function allEv(){return SEED.map(e=>({...e,d:dkey(e.o)})).concat(st.userEv).sort((a,b)=>(a.d+a.t).localeCompare(b.d+b.t))}
+function allEv(){const list=isLive()?st.liveEv:SEED.map(e=>({...e,d:dkey(e.o)})).concat(st.userEv);
+  return list.slice().sort((a,b)=>(a.d+(a.t==='整天'?'00:00':a.t)).localeCompare(b.d+(b.t==='整天'?'00:00':b.t)))}
 const evOn=k=>allEv().filter(e=>e.d===k);
-function catIcon(e){if(/餐|吃|飯|鍋|咖啡|早午/.test(e.title))return 'ic_food';if(/山|步道|散步|健身|跑|爬/.test(e.title))return 'ic_mount';
-  if(/生日|約會|紀念/.test(e.title))return 'ic_heart';if(e.cal==='work')return 'ic_bag';return 'ic_cal'}
+function catIcon(e){const t=e.title||'';if(/餐|吃|飯|鍋|咖啡|早午|午餐|晚餐|聚餐/.test(t))return 'ic_food';if(/山|步道|散步|健身|跑|爬|游泳|球/.test(t))return 'ic_mount';
+  if(/生日|約會|紀念/.test(t))return 'ic_heart';if(e.cal==='work'||/會議|週會|提案|開會|面試|meeting|sync/i.test(t))return 'ic_bag';return 'ic_cal'}
 function rowHTML(e,withChk){return `<div class="row ${withChk?'sch':''} ${st.done[e.id]?'done':''}">
-  ${withChk?`<button class="chk" role="checkbox" aria-checked="${!!st.done[e.id]}" aria-label="完成 ${esc(e.title)}" data-id="${e.id}"></button>`:'<img class="ck" src="assets/ic_clock.png" alt="">'}
-  <span class="t">${e.t}</span><span class="sep"></span><img class="cat" src="assets/${catIcon(e)}.png" alt="">
+  ${withChk?`<button class="chk" role="checkbox" aria-checked="${!!st.done[e.id]}" aria-label="完成 ${esc(e.title)}" data-id="${esc(e.id)}"></button>`:'<img class="ck" src="assets/ic_clock.png" alt="">'}
+  <span class="t">${esc(e.t)}</span><span class="sep"></span><img class="cat" src="assets/${catIcon(e)}.png" alt="">
   <div class="ti"><strong>${esc(e.title)}</strong>${e.loc?`<span>${esc(e.loc)}</span>`:''}</div></div>`}
 
 /* ---------- scene / time of day ---------- */
@@ -384,35 +415,36 @@ function sceneNow(){if(st.scene!=='auto')return st.scene;const h=new Date().getH
 const sleeping=()=>{const h=new Date().getHours();return st.scene==='auto'?(h>=23||h<6):false};
 function applyScene(){const bg=st.tab==='home'?`bg_${sceneNow()}`:'bg_room';$('#app').style.setProperty('--bg',`url(assets/${bg}.webp)`)}
 
-/* ---------- header ---------- */
+/* ---------- header + streak ---------- */
+function streak(){const today=dkey(0),y=dkey(-1);let s=load('streak',{last:null,n:0});
+  if(s.last!==today){s={last:today,n:s.last===y?s.n+1:1};save('streak',s)}return s.n}
 function header(){const k=dkey(0);const [,m,d]=k.split('-').map(Number);
   $('#hdr-date').firstChild.nodeValue=`${m}月${d}日 週${WK[new Date().getDay()]}`;
-  $('#hdr-sub').textContent=`今天 ${evOn(k).length} 件事`;}
+  $('#hdr-sub').textContent=`今天 ${evOn(k).length} 件事`;$('#streak-n').textContent=`${streak()} 天`;}
 
 /* ---------- mascot ---------- */
-function line(){const tm=evOn(dkey(1)),n=tm.length,f=tm[0],p=st.pet;
-  if(p==='parrot')return n?`明天！明天！${n} 件事！\n${f.t}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
-  if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${f.t}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
-  return n?`哼，明天 ${n} 件事。\n${f.t}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
+function line(){const tm=evOn(dkey(1)),n=tm.length,f=tm[0],p=st.pet,ft=f&&(f.t==='整天'?'整天':f.t);
+  if(p==='parrot')return n?`明天！明天！${n} 件事！\n${ft}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
+  if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${ft}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
+  return n?`哼，明天 ${n} 件事。\n${ft}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
 const TAP={parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
-function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if(typeof setPose==='function'&&$('#pet-img').getAttribute('src'))setPose(pose())}
+function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[st.pet].h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize();const src=art(st.pet,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
   const h=Math.round(PETS[st.pet].h[pose]*k);im.style.height=h+'px';
   placeBubble();}
-/* bubble hugs its text; its tail tip (about 28px from its left edge) points down at the mascot's head */
+/* bubble hugs its text; its tail points down at the mascot's head */
 function placeBubble(){requestAnimationFrame(()=>{const b=$('#bubble'),im=$('#pet-img'),stg=$('#stage');
   const sw=stg.clientWidth,sh=stg.clientHeight,iw=im.offsetWidth,ih=im.offsetHeight;if(!iw)return;
   b.style.maxWidth='';b.style.left='0px';const tl=b.querySelector('.tail');if(!tl)return;tl.hidden=false;
   const k=petSize(),P=PETS[st.pet].h,tallest=Math.max(P.idle,P.happy,P.alert)*k,idleH=P.idle*k;
   const bw=b.offsetWidth,bh=b.offsetHeight,TAILH=13,headX=sw*.47+iw*.08;
   let left=Math.round(headX-bw*.35);left=Math.max(6,Math.min(left,sw-6-bw));
-  const ideal=Math.round(6+tallest+18+TAILH+4); /* clears the tallest pose at the top of its jump */
+  const ideal=Math.round(6+tallest+18+TAILH+4);
   const bottom=Math.min(ideal,sh-bh-2);
   if(bottom>=6+idleH+TAILH){b.style.left=left+'px';b.style.bottom=bottom+'px';
     tl.style.left=Math.max(12,Math.min(bw-17*2-23-6,Math.round(headX-left-17-6)))+'px';return}
   tl.hidden=true;
-  /* no room above the head: sit beside it, narrowing to the space on the right */
   const sideLeft=Math.round(sw*.47+iw*.42);b.style.left=sideLeft+'px';b.style.maxWidth=Math.max(110,sw-sideLeft-6)+'px';
   requestAnimationFrame(()=>{const nbh=b.offsetHeight;b.style.bottom=Math.max(6,Math.min(Math.round(ih*.45),sh-nbh-2))+'px'});});}
 addEventListener('resize',placeBubble);
@@ -434,7 +466,10 @@ addEventListener('resize',()=>setPose(pose()));
 function sched(){const list=allEv();const keys=st.range===7?[...Array(7)].map((_,i)=>dkey(i)):[dkey(st.range)];
   const html=keys.map(k=>{const es=list.filter(e=>e.d===k);if(!es.length&&st.range===7)return'';
     return `<div class="panel frame"><div class="plaque btn wood"><img src="assets/ic_cal.png" alt="">${dlabel(k)}</div><div class="inner">${es.length?es.map(e=>rowHTML(e,true)).join(''):'<p class="empty">這天沒有行程。</p>'}</div></div>`}).join('');
-  $('#sched-list').innerHTML=html||'<p class="empty card">這週沒有行程。</p>';}
+  $('#sched-list').innerHTML=html||'<p class="empty card">這週沒有行程。</p>';
+  $('#sched-note').textContent=isLive()?(st.lastSync?`已從 Google 日曆同步（${st.lastSync}）。在這裡新增的行程只會存在 App 裡，不會寫回 Google 日曆。`:'還沒同步 Google 日曆，到「設定」按「同步日曆」。'):
+    '示範資料。登入後會讀取你的 Google 日曆；iPhone 在「設定 › 日曆 › 帳號」加入同一個 Google 帳號，Apple 日曆也會同步顯示。';}
+function refreshAll(){header();home();sched();}
 $('#sched-list').addEventListener('click',e=>{const b=e.target.closest('.chk');if(!b)return;
   const id=b.dataset.id;st.done[id]=!st.done[id];save('done',st.done);sched();home();if(st.done[id])toast(`${st.name}：做得好！`);});
 $$('.seg .btn').forEach(b=>b.addEventListener('click',()=>{st.range=+b.dataset.range;
@@ -442,9 +477,41 @@ $$('.seg .btn').forEach(b=>b.addEventListener('click',()=>{st.range=+b.dataset.r
 $('#btn-add').addEventListener('click',()=>{$('#sheet').hidden=false;$('#ev-title').focus()});
 $('#ev-cancel').addEventListener('click',()=>$('#sheet').hidden=true);
 $('#sheet').addEventListener('click',e=>{if(e.target.id==='sheet')$('#sheet').hidden=true});
-$('#ev-form').addEventListener('submit',e=>{e.preventDefault();
-  const ev={id:'u'+Date.now(),d:dkey(+$('#ev-day').value),t:$('#ev-time').value,title:$('#ev-title').value.trim(),loc:$('#ev-loc').value.trim(),cal:$('#ev-cal').value};
-  if(!ev.title)return;st.userEv.push(ev);save('events',st.userEv);$('#sheet').hidden=true;$('#ev-form').reset();sched();home();header();toast('已加入行程');});
+$('#ev-form').addEventListener('submit',async e=>{e.preventDefault();
+  const off=+$('#ev-day').value,t=$('#ev-time').value,title=$('#ev-title').value.trim(),loc=$('#ev-loc').value.trim(),cal=$('#ev-cal').value;
+  if(!title)return;
+  if(isLive()){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);const [h,mi]=t.split(':').map(Number);d.setHours(h,mi);
+    const {error}=await sb.from('events').insert({user_id:ME,google_id:'local-'+Date.now(),starts_at:d.toISOString(),title,location:loc||null});
+    if(error){toast('新增失敗：'+error.message);return}await loadEvents();}
+  else{st.userEv.push({id:'u'+Date.now(),d:dkey(off),t,title,loc,cal});save('events',st.userEv);}
+  $('#sheet').hidden=true;$('#ev-form').reset();refreshAll();toast('已加入行程');});
+
+/* ---------- live: calendar ---------- */
+function gtoken(){try{const v=JSON.parse(sessionStorage.getItem('ppal2:gtok')||'null');return v&&v.exp>Date.now()?v.t:null}catch(e){return null}}
+function keepToken(t){if(!t)return;try{sessionStorage.setItem('ppal2:gtok',JSON.stringify({t,exp:Date.now()+50*60e3}))}catch(e){}}
+function range7(){const t0=new Date();t0.setHours(0,0,0,0);const t1=new Date(t0);t1.setDate(t1.getDate()+8);return [t0,t1]}
+async function loadEvents(){const [t0,t1]=range7();
+  const {data,error}=await sb.from('events').select('*').eq('user_id',ME).gte('starts_at',t0.toISOString()).lt('starts_at',t1.toISOString()).order('starts_at');
+  if(error){toast('讀取行程失敗：'+error.message);return}
+  st.liveEv=data.map(r=>{const d=new Date(r.starts_at);return {id:r.google_id,d:dkeyOf(d),t:r.all_day?'整天':hhmm(d),title:r.title,loc:r.location||'',cal:'life'}});}
+async function syncCalendar(){const tok=gtoken();if(!tok)return 'no-token';const [t0,t1]=range7();
+  const q=new URLSearchParams({timeMin:t0.toISOString(),timeMax:t1.toISOString(),singleEvents:'true',orderBy:'startTime',maxResults:'250'});
+  const r=await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?'+q,{headers:{Authorization:'Bearer '+tok}});
+  if(r.status===401||r.status===403){try{sessionStorage.removeItem('ppal2:gtok')}catch(e){}return 'no-token'}
+  if(!r.ok)throw new Error('Google 日曆回應 '+r.status);
+  const j=await r.json();
+  const rows=(j.items||[]).filter(e=>e.status!=='cancelled'&&e.start).map(e=>({user_id:ME,google_id:e.id,
+    starts_at:e.start.dateTime?new Date(e.start.dateTime).toISOString():new Date(e.start.date+'T00:00:00').toISOString(),
+    title:e.summary||'（未命名行程）',location:e.location||null,all_day:!e.start.dateTime,updated_at:new Date().toISOString()}));
+  const del=await sb.from('events').delete().eq('user_id',ME).gte('starts_at',t0.toISOString()).not('google_id','like','local-%');
+  if(del.error)throw del.error;
+  if(rows.length){const up=await sb.from('events').upsert(rows);if(up.error)throw up.error}
+  st.lastSync=new Date().toLocaleString('zh-TW',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});save('lastSync',st.lastSync);
+  return rows.length;}
+async function doSync(manual){try{const n=await syncCalendar();
+    if(n==='no-token'){if(manual)signIn();return}
+    await loadEvents();refreshAll();account();if(manual)toast(`已同步 ${n} 個行程`)}
+  catch(e){toast('同步失敗：'+(e.message||e))}}
 
 /* ---------- friends ---------- */
 const FRIENDS=load('friends',[
@@ -456,11 +523,14 @@ const MSGS=load('msgs',{
   mina:[{f:'mina',x:'今天下班看到的夕陽，送你當桌布',ts:'18:05'},{f:'mina',img:'assets/bg_dusk.webp',ts:'18:05'}],
   jer:[{f:'me',x:'週日火鍋還吃嗎？',ts:'昨天'},{f:'jer',x:'吃！公館那間，七點見',ts:'昨天'}]});
 const REPLY={mi:['好啊','哈哈哈','收到～'],mina:['謝謝你！','明天見！','愛你～'],jer:['讚','OK der','走起']};
-const now=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
+const now=()=>hhmm(new Date());
+function fmtTs(iso){const d=new Date(iso),k=dkeyOf(d);return k===dkey(0)?hhmm(d):k===dkey(-1)?'昨天':`${d.getMonth()+1}/${d.getDate()}`}
 const lastTxt=m=>m?(m.img?'[圖片]':m.poke?'戳了一下':m.x):'';
 function avatar(p){const d=document.createElement('div');d.className='av';d.appendChild(petImg(p));return d}
 function friends(){const box=$('#flist');box.innerHTML='';
-  FRIENDS.forEach(fr=>{const ms=MSGS[fr.id]||[],last=ms[ms.length-1],u=st.unread[fr.id]||0;
+  if(!FRIENDS.length)box.innerHTML='<p class="empty">還沒有好友。把上面的好友碼傳給朋友，或輸入朋友的好友碼。</p>';
+  const order=FRIENDS.slice().sort((a,b)=>((MSGS[b.id]||[]).slice(-1)[0]?._at||0)-((MSGS[a.id]||[]).slice(-1)[0]?._at||0));
+  order.forEach(fr=>{const ms=MSGS[fr.id]||[],last=ms[ms.length-1],u=st.unread[fr.id]||0;
     const b=document.createElement('button');b.className='fr';
     b.innerHTML=`<div class="meta"><strong>${esc(fr.name)}${u?`<span class="dot">${u}</span>`:''}</strong><span>${esc(lastTxt(last))}</span></div><span class="src">${last?esc(last.ts):''}</span>`;
     b.prepend(avatar(fr.pet));b.addEventListener('click',()=>openChat(fr.id));box.appendChild(b);});
@@ -468,35 +538,77 @@ function friends(){const box=$('#flist');box.innerHTML='';
 $('#btn-copy').addEventListener('click',()=>{const c=$('#mycode').textContent;
   const sel=()=>{const r=document.createRange();r.selectNodeContents($('#mycode'));const s=getSelection();s.removeAllRanges();s.addRange(r);toast('已選取，請手動複製')};
   try{navigator.clipboard.writeText(c).then(()=>toast('已複製好友碼'),sel)}catch(e){sel()}});
-$('#addf').addEventListener('submit',e=>{e.preventDefault();const v=$('#addf-code').value.trim().toUpperCase();
+$('#addf').addEventListener('submit',async e=>{e.preventDefault();const v=$('#addf-code').value.trim().toUpperCase();
   if(!/^PXL-\d{4}$/.test(v)){toast('好友碼格式是 PXL-0000');return}
+  if(isLive()){const {data,error}=await sb.rpc('add_friend',{code:v});
+    if(error){const m=error.message||'';toast(/not found/.test(m)?'找不到這個好友碼':/yourself/.test(m)?'這是你自己的好友碼喔':'加好友失敗：'+m);return}
+    $('#addf-code').value='';await loadFriends();friends();toast(`和 ${data.display_name} 成為好友了！`);return}
   const id='f'+v.slice(4);if(FRIENDS.some(f=>f.id===id)){toast('已經是好友了');return}
   FRIENDS.push({id,name:'新朋友 '+v.slice(4),pet:Object.keys(PETS)[+v.slice(-1)%3],petName:'小夥伴'});
-  MSGS[id]=[{sys:1,x:'你們成為好友了',ts:now()}];save('friends',FRIENDS);save('msgs',MSGS);$('#addf-code').value='';friends();toast('已送出好友邀請（示範）');});
-function chatRender(){const id=st.chat,fr=FRIENDS.find(f=>f.id===id),box=$('#msgs');
-  box.innerHTML=(MSGS[id]||[]).map((m,i)=>{
-    if(m.sys||m.poke)return `<div class="sys">${m.poke?'<img src="assets/ic_hand.png" alt="">':''}${esc(m.poke?(m.f==='me'?`你戳了 ${fr.name} 一下`:`${fr.name} 戳回來了！`):m.x)}</div>`;
-    const me=m.f==='me';
-    return `<div class="m ${me?'me':''}">${m.img?`<button class="imgb" aria-label="查看圖片"><img src="${m.img}" alt="聊天圖片"></button>`:`<div class="b">${esc(m.x)}</div>`}<span class="ts">${esc(m.ts)}</span></div>`}).join('');
+  MSGS[id]=[{sys:1,x:'你們成為好友了',ts:now()}];save('friends',FRIENDS);save('msgs',MSGS);$('#addf-code').value='';friends();toast('已加入好友（示範）');});
+
+/* ---------- live: friends & messages ---------- */
+const URLS={};
+async function signedUrl(path){if(URLS[path])return URLS[path];
+  const {data}=await sb.storage.from('chat-images').createSignedUrl(path,3600);if(data)URLS[path]=data.signedUrl;return URLS[path]}
+function addMsg(m){const other=m.sender_id===ME?m.receiver_id:m.sender_id,arr=(MSGS[other]=MSGS[other]||[]);
+  if(arr.some(x=>x._id===m.id))return false;
+  arr.push({_id:m.id,_at:+new Date(m.created_at),f:m.sender_id===ME?'me':m.sender_id,x:m.body,poke:m.kind==='poke',img:m.kind==='image'?'@'+m.image_path:null,ts:fmtTs(m.created_at)});return true}
+async function loadFriends(){
+  const fs=await sb.from('friendships').select('friend_id');if(fs.error){toast('讀取好友失敗：'+fs.error.message);return}
+  const ids=fs.data.map(f=>f.friend_id);let profs=[];
+  if(ids.length){const r=await sb.from('profiles').select('id,display_name,pet,pet_name').in('id',ids);profs=r.data||[]}
+  FRIENDS.length=0;profs.forEach(p=>FRIENDS.push({id:p.id,name:p.display_name,pet:p.pet,petName:p.pet_name}));
+  Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};
+  const ms=await sb.from('messages').select('*').or(`sender_id.eq.${ME},receiver_id.eq.${ME}`).order('created_at',{ascending:true}).limit(1000);
+  (ms.data||[]).forEach(m=>{addMsg(m);if(m.receiver_id===ME&&!m.read_at)st.unread[m.sender_id]=(st.unread[m.sender_id]||0)+1});}
+async function markRead(fid){if(!st.unread[fid])return;st.unread[fid]=0;
+  await sb.from('messages').update({read_at:new Date().toISOString()}).eq('sender_id',fid).eq('receiver_id',ME).is('read_at',null)}
+async function sendLive(kind,body,image_path){const {data,error}=await sb.from('messages').insert({sender_id:ME,receiver_id:st.chat,kind,body:body||null,image_path:image_path||null}).select().single();
+  if(error){toast('傳送失敗：'+error.message);return null}addMsg(data);chatRender();friends();return data}
+function subscribe(){sb.channel('inbox-'+ME).on('postgres_changes',{event:'INSERT',schema:'public',table:'messages',filter:`receiver_id=eq.${ME}`},async p=>{
+    const m=p.new;if(!FRIENDS.some(f=>f.id===m.sender_id))await loadFriends();
+    if(!addMsg(m))return;const fr=FRIENDS.find(f=>f.id===m.sender_id),name=fr?fr.name:'朋友';
+    const open=!$('#chat').hidden&&st.chat===m.sender_id;
+    if(open){st.unread[m.sender_id]=1;markRead(m.sender_id);chatRender();if(m.kind==='poke')pokeRun(fr&&fr.pet)}
+    else{st.unread[m.sender_id]=(st.unread[m.sender_id]||0)+1;toast(m.kind==='poke'?`${name} 戳了你一下！`:m.kind==='image'?`${name} 傳了一張圖片`:`${name}：${m.body}`)}
+    friends();}).subscribe();}
+
+/* ---------- chat ---------- */
+function chatRender(){const id=st.chat,fr=FRIENDS.find(f=>f.id===id),box=$('#msgs');if(!fr)return;
+  box.innerHTML=(MSGS[id]||[]).map(m=>{
+    if(m.sys||m.poke)return `<div class="sys">${m.poke?'<img src="assets/ic_hand.png" alt="">':''}${esc(m.poke?(m.f==='me'?`你戳了 ${fr.name} 一下`:`${fr.name} 戳了你一下！`):m.x)}</div>`;
+    const me=m.f==='me',path=m.img&&m.img[0]==='@'?m.img.slice(1):'';
+    return `<div class="m ${me?'me':''}">${m.img?`<button class="imgb" aria-label="查看圖片"><img src="${path?(URLS[path]||'assets/ic_camera.png'):esc(m.img)}" ${path?`data-path="${esc(path)}"`:''} alt="聊天圖片"></button>`:`<div class="b">${esc(m.x)}</div>`}<span class="ts">${esc(m.ts)}</span></div>`}).join('')||'<p class="sys">打聲招呼吧！</p>';
+  box.querySelectorAll('img[data-path]').forEach(async im=>{const u=await signedUrl(im.dataset.path);if(u&&im.isConnected){im.src=u;im.onload=()=>{box.scrollTop=box.scrollHeight}}});
   box.scrollTop=box.scrollHeight;}
 function openChat(id){st.chat=id;const fr=FRIENDS.find(f=>f.id===id);
-  $('#chat-name').textContent=fr.name;$('#chat-sub').textContent=`夥伴：${PETS[fr.pet].label}「${fr.petName}」`;
-  const av=$('#chat-av');av.innerHTML='';av.appendChild(petImg(fr.pet));$('#poke-img').src=art(fr.pet,'happy');
-  st.unread[id]=0;save('unread',st.unread);$('#chat').hidden=false;chatRender();friends();}
+  $('#chat-name').textContent=fr.name;$('#chat-sub').textContent=`夥伴：${(PETS[fr.pet]||PETS.shiba).label}「${fr.petName}」`;
+  const av=$('#chat-av');av.innerHTML='';av.appendChild(petImg(fr.pet));$('#poke-img').src=art(PETS[fr.pet]?fr.pet:'shiba','happy');
+  if(isLive())markRead(id);else{st.unread[id]=0;save('unread',st.unread)}
+  $('#chat').hidden=false;chatRender();friends();}
 $('#chat-back').addEventListener('click',()=>{$('#chat').hidden=true;st.chat=null;friends()});
 function push(id,m){(MSGS[id]=MSGS[id]||[]).push(m);save('msgs',MSGS);if(st.chat===id)chatRender();}
 function fakeReply(id){setTimeout(()=>{const r=REPLY[id]||['嗨！'];push(id,{f:id,x:r[Math.floor(Math.random()*r.length)],ts:now()});
   if(st.chat!==id){st.unread[id]=(st.unread[id]||0)+1;save('unread',st.unread);friends()}},1600)}
-$('#composer').addEventListener('submit',e=>{e.preventDefault();const v=$('#msg-in').value.trim();if(!v)return;
-  push(st.chat,{f:'me',x:v,ts:now()});$('#msg-in').value='';fakeReply(st.chat);});
-$('#chat-poke').addEventListener('click',()=>{const id=st.chat;push(id,{f:'me',poke:1,ts:now()});
-  const pp=$('#poke-pop');pp.classList.remove('run');void pp.offsetWidth;pp.classList.add('run');
-  setTimeout(()=>push(id,{f:id,poke:1,ts:now()}),2000);});
-function compress(file){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;
+function pokeRun(p){if(p)$('#poke-img').src=art(PETS[p]?p:'shiba','happy');const pp=$('#poke-pop');pp.classList.remove('run');void pp.offsetWidth;pp.classList.add('run')}
+$('#composer').addEventListener('submit',async e=>{e.preventDefault();const v=$('#msg-in').value.trim();if(!v)return;$('#msg-in').value='';
+  if(isLive()){if(!await sendLive('text',v))$('#msg-in').value=v;return}
+  push(st.chat,{f:'me',x:v,ts:now()});fakeReply(st.chat);});
+$('#chat-poke').addEventListener('click',async()=>{const id=st.chat;pokeRun();
+  if(isLive()){await sendLive('poke');return}
+  push(id,{f:'me',poke:1,ts:now()});setTimeout(()=>push(id,{f:id,poke:1,ts:now()}),2000);});
+function compress(file,type='image/jpeg'){return new Promise((res,rej)=>{const fr=new FileReader();fr.onerror=rej;fr.onload=()=>{const im=new Image();im.onerror=rej;
   im.onload=()=>{const k=Math.min(1,1600/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
-    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);res(c.toDataURL('image/jpeg',.85))};im.src=fr.result};fr.readAsDataURL(file)})}
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);c.toBlob(b=>b?res(b):rej(new Error('compress')),type,.85)};im.src=fr.result};fr.readAsDataURL(file)})}
 $('#img-in').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
-  try{const url=await compress(f);push(st.chat,{f:'me',img:url,ts:now()});toast('圖片已壓縮並送出');fakeReply(st.chat)}catch(err){toast('這張圖片讀不到，換一張試試')}});
+  try{const blob=await compress(f);
+    if(isLive()){toast('上傳中…');const path=`${ME}/${st.chat}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+      const up=await sb.storage.from('chat-images').upload(path,blob,{contentType:'image/jpeg'});
+      if(up.error){toast('上傳失敗：'+up.error.message);return}URLS[path]=URL.createObjectURL(blob);
+      if(await sendLive('image',null,path))toast('圖片已送出');return}
+    push(st.chat,{f:'me',img:URL.createObjectURL(blob),ts:now()});toast('圖片已壓縮並送出');fakeReply(st.chat)}
+  catch(err){toast('這張圖片讀不到，換一張試試')}});
 $('#msgs').addEventListener('click',e=>{const b=e.target.closest('.imgb');if(!b)return;$('#viewer-img').src=b.querySelector('img').src;$('#viewer').hidden=false;});
 $('#viewer-x').addEventListener('click',()=>$('#viewer').hidden=true);
 $('#viewer-hint').textContent='手機上會打開分享選單，選「儲存影像」即可存到相簿。';
@@ -509,16 +621,31 @@ $('#viewer-dl').addEventListener('click',async()=>{const src=$('#viewer-img').sr
   catch(err){if(err&&err.name==='AbortError')return;toast('下載失敗，請長按圖片儲存')}});
 
 /* ---------- settings ---------- */
+let saveT=null;
+function saveProfile(){if(!isLive())return;clearTimeout(saveT);saveT=setTimeout(async()=>{
+  const {error}=await sb.from('profiles').update({pet:st.pet,pet_name:st.name.slice(0,12),remind_time:st.time}).eq('id',ME);
+  if(error)toast('設定儲存失敗：'+error.message)},600)}
 function settings(){const box=$('#pets');box.innerHTML='';
   Object.entries(PETS).forEach(([k,sp])=>{const b=document.createElement('button');b.className='pick';b.setAttribute('role','radio');b.setAttribute('aria-checked',k===st.pet);
     const im=petImg(k);im.className='p';b.appendChild(im);const s=document.createElement('span');s.textContent=sp.label;b.appendChild(s);
     b.addEventListener('click',()=>{const old=PETS[st.pet].def;st.pet=k;save('pet',k);
-      if(st.name===old){st.name=sp.def;save('name',st.name);$('#set-name').value=st.name}settings();home();toast(`${sp.label}「${st.name}」來報到了`)});
+      if(st.name===old){st.name=sp.def;save('name',st.name);$('#set-name').value=st.name}settings();home();saveProfile();toast(`${sp.label}「${st.name}」來報到了`)});
     box.appendChild(b)});
-  $('#set-name').value=st.name;$('#set-time').value=st.time;$('#set-scene').value=st.scene;}
-$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[st.pet].def;save('name',st.name);home()});
-$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);toast(`每晚 ${st.time} 提醒你`)});
+  $('#set-name').value=st.name;if(![...$('#set-time').options].some(x=>x.value===st.time))$('#set-time').add(new Option(st.time,st.time));$('#set-time').value=st.time;$('#set-scene').value=st.scene;account();}
+$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[st.pet].def;save('name',st.name);home();saveProfile()});
+$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();toast(`每晚 ${st.time} 提醒你`)});
 $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scene',st.scene);home();toast('場景已切換，回到「夥伴」看看')});
+function account(){const box=$('#acct');
+  if(isLive()){const nm=PROFILE?PROFILE.display_name:'';const em=USER?USER.email:'';
+    box.innerHTML=`<div class="conn"><div><strong>${esc(nm)}</strong><p>${esc(em)}</p></div><button class="btn wood" id="btn-logout">登出</button></div>
+      <div class="conn"><div><strong>Google 日曆</strong><p>${st.lastSync?'上次同步 '+esc(st.lastSync):'尚未同步'}</p></div><button class="btn gold" id="btn-sync">同步日曆</button></div>
+      <div class="conn"><div><strong>每晚推播</strong><p>下一步開放</p></div><span class="tag">即將推出</span></div>`;
+    $('#btn-logout').onclick=async()=>{await sb.auth.signOut();try{sessionStorage.clear()}catch(e){}location.reload()};
+    $('#btn-sync').onclick=()=>doSync(true);
+    $('#mode-note').textContent='你的行程、好友和訊息都存在雲端，換手機登入同一個 Google 帳號也看得到。';}
+  else{box.innerHTML=`<div class="conn"><div><strong>示範模式</strong><p>登入後才會讀取你的 Google 日曆、和好友聊天</p></div><button class="btn gold" id="btn-login2">登入</button></div>`;
+    $('#btn-login2').onclick=()=>sb?signIn():toast('目前連不到伺服器，請稍後再試');
+    $('#mode-note').textContent='示範模式：行程與好友是假資料，你新增的內容只存在這台裝置的瀏覽器。';}}
 
 /* ---------- notification preview ---------- */
 $('#btn-preview').addEventListener('click',()=>{go('home');const tm=evOn(dkey(1));const ic=$('#notif-ico');ic.innerHTML='';ic.appendChild(petImg(st.pet,'alert'));
@@ -532,19 +659,39 @@ $('#notif').addEventListener('click',()=>$('#notif').classList.remove('show'));
 function go(tab){st.tab=tab;$('#app').dataset.tab=tab;$$('nav.tabs button').forEach(b=>{const on=b.dataset.tab===tab;b.setAttribute('aria-selected',on);b.className=on?'gold':'wood'});
   ['home','sched','friends','set'].forEach(t=>$('#v-'+t).hidden=t!==tab);document.querySelector('main').scrollTop=0;applyScene();if(tab==='home')setPose(pose());}
 $$('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
-$$('[data-go]').forEach(b=>b.addEventListener('click',()=>{go(b.dataset.go);st.range=1;
-  $$('.seg .btn').forEach(x=>{const on=x.dataset.range==='1';x.setAttribute('aria-pressed',on);x.className='btn '+(on?'gold':'wood')});sched()}));
-function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),1800)}
+function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2200)}
 
-/* ---------- idle bob ---------- */
+/* ---------- idle animation ---------- */
 let tick=0;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 function blink(){if(st.tab!=='home'||st.mood||sleeping())return;const im=$('#pet-img');im.setAttribute('src',art(st.pet,'blink'));
   setTimeout(()=>{if(!st.mood&&im.getAttribute('src')===art(st.pet,'blink'))im.setAttribute('src',art(st.pet,pose()))},170)}
 function frame(){tick++;if(tick%8===5||tick%23===0)blink();$('#pet').classList.toggle('bob',!st.mood&&!sleeping()&&tick%2===1);if(tick%60===0){applyScene();if(!st.mood)setPose(pose())}}
 
-header();applyScene();home();sched();friends();settings();go('home');
-requestAnimationFrame(()=>setPose(pose()));
-if(!reduce)setInterval(frame,520);
+/* ---------- sign in / start ---------- */
+async function signIn(){if(!sb){toast('目前連不到伺服器，請稍後再試');return}
+  const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname,scopes:CAL_SCOPE,queryParams:{prompt:'consent'}}});
+  if(error)toast('登入失敗：'+error.message);}
+$('#btn-login').addEventListener('click',signIn);
+$('#btn-demo').addEventListener('click',()=>{save('demo',true);$('#login').hidden=true;startDemo()});
+function startDemo(){MODE='demo';settings();refreshAll();friends();}
+async function startLive(session){MODE='live';USER=session.user;ME=USER.id;$('#login').hidden=true;keepToken(session.provider_token);
+  FRIENDS.length=0;Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};st.liveEv=[];
+  const p=await sb.from('profiles').select('*').eq('id',ME).single();
+  if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
+    save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;}
+  settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();
+  if(gtoken())doSync(false);}
+async function boot(){
+  header();applyScene();home();go('home');requestAnimationFrame(()=>setPose(pose()));if(!reduce)setInterval(frame,520);
+  if(!sb){startDemo();return}
+  const err=new URLSearchParams(location.search).get('error_description');if(err)toast('登入失敗：'+err);
+  sb.auth.onAuthStateChange((ev,s)=>{if(s&&s.provider_token)keepToken(s.provider_token)});
+  const {data:{session}}=await sb.auth.getSession();
+  if(location.search.includes('code=')||location.hash.includes('access_token'))history.replaceState(null,'',location.pathname);
+  if(session){await startLive(session);return}
+  if(load('demo',false)){startDemo();return}
+  startDemo();$('#login').hidden=false;}
+boot();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 })();
 </script>
