@@ -208,6 +208,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
 .login-card p{margin:0;font-size:14px}
 .login-card .btn{min-height:30px;font-size:16px}
 .login-card .fine{font-size:12px;color:var(--muted)}
+.login-card .fine a,.note a{color:#A6431C;margin-left:6px}
 @media (prefers-reduced-motion: reduce){.login-pet{animation:none}}
 </style>
 </head>
@@ -283,6 +284,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
       </div>
       <div class="card stack" id="acct"></div>
       <p class="note card" id="mode-note"></p>
+      <p class="note card"><a href="privacy.html">隱私權政策</a></p>
     </section>
   </main>
 
@@ -344,7 +346,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
       <p>用 Google 帳號登入，就能和好友傳訊息、互相戳一下。想讓夥伴提醒明天的行程，登入後再到「設定」連結 Google 日曆。</p>
       <button class="btn gold" id="btn-login"><img src="assets/ic_cal.png" alt="">用 Google 登入</button>
       <button class="btn wood" id="btn-demo">先看看示範</button>
-      <p class="fine">登入只會取得你的名字和信箱。</p>
+      <p class="fine">登入只會取得你的名字和信箱。<a href="privacy.html">隱私權政策</a></p>
     </div>
   </div>
 
@@ -424,6 +426,7 @@ function header(){const k=dkey(0);const [,m,d]=k.split('-').map(Number);
 
 /* ---------- mascot ---------- */
 function line(){const tm=evOn(dkey(1)),n=tm.length,f=tm[0],p=st.pet,ft=f&&(f.t==='整天'?'整天':f.t);
+  if(isLive()&&!calLinked()&&!n)return p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你明天的行程！\n去設定連結日曆吧！':'我還不知道你明天要幹嘛。\n去設定連結日曆。';
   if(p==='parrot')return n?`明天！明天！${n} 件事！\n${ft}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
   if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${ft}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
   return n?`哼，明天 ${n} 件事。\n${ft}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
