@@ -86,7 +86,9 @@ async function sendPush(sub, payload, vapid) {
 // ---------------------------------------------------------------------------
 const env = (k: string) => Deno.env.get(k) || "";
 const SB_URL = env("SUPABASE_URL");
-const SERVICE_KEY = env("SUPABASE_SERVICE_ROLE_KEY") || env("SERVICE_ROLE_KEY");
+// Prefer a secret key you add yourself (SB_SECRET_KEY = sb_secret_...), fall back to the built-in service-role key
+const SERVICE_KEY = env("SB_SECRET_KEY") || env("SUPABASE_SERVICE_ROLE_KEY") || env("SERVICE_ROLE_KEY");
+const keyHeaders = (k: string) => (k.startsWith("eyJ") ? { apikey: k, Authorization: "Bearer " + k } : { apikey: k });
 const VAPID = { publicKey: env("VAPID_PUBLIC_KEY"), privateKey: env("VAPID_PRIVATE_KEY"), subject: env("VAPID_SUBJECT") || "mailto:pixel-pal@example.com" };
 const WINDOW_MIN = 15;
 const CORS = {
@@ -100,7 +102,7 @@ const json = (o: unknown, status = 200) =>
 async function rest(path: string, init: RequestInit = {}) {
   const res = await fetch(SB_URL + "/rest/v1/" + path, {
     ...init,
-    headers: { apikey: SERVICE_KEY, Authorization: "Bearer " + SERVICE_KEY, "Content-Type": "application/json", ...(init.headers || {}) },
+    headers: { ...keyHeaders(SERVICE_KEY), "Content-Type": "application/json", ...(init.headers || {}) },
   });
   if (!res.ok) throw new Error(`REST ${path.split("?")[0]} → ${res.status} ${await res.text()}`);
   return res.status === 204 ? null : res.json().catch(() => null);
@@ -163,13 +165,15 @@ async function remind(profile: any, subs: any[], test = false) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (!SERVICE_KEY || !VAPID.publicKey || !VAPID.privateKey) return json({ error: "missing secrets" }, 500);
+  const missing = [!SERVICE_KEY && "SERVICE KEY", !VAPID.publicKey && "VAPID_PUBLIC_KEY", !VAPID.privateKey && "VAPID_PRIVATE_KEY", !env("CRON_SECRET") && "CRON_SECRET"].filter(Boolean);
+  if (missing.length) return json({ error: "missing secrets: " + missing.join(", ") }, 500);
   const body = await req.json().catch(() => ({}));
   try {
     // ---- test from the app: only to the signed-in user --------------------
     if (body.test) {
       const token = (req.headers.get("Authorization") || "").replace(/^Bearer\s+/i, "");
       const u = await fetch(SB_URL + "/auth/v1/user", { headers: { apikey: SERVICE_KEY, Authorization: "Bearer " + token } });
+      if (!u.ok) console.log("auth check", u.status, await u.clone().text());
       if (!u.ok) return json({ error: "not signed in" }, 401);
       const user = await u.json();
       const [profile] = await rest(`profiles?select=id,pet,pet_name,remind_time,timezone&id=eq.${user.id}`);
