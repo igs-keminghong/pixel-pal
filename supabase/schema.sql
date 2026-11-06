@@ -222,6 +222,12 @@ grant select, insert, update, delete on public.events             to authenticat
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 grant execute on function public.is_friend(uuid, uuid) to authenticated;
 
+-- 後端（每晚推播程式）用 service_role 讀寫，也要明確授權
+grant usage on schema public to service_role;
+grant all on all tables    in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+grant execute on all functions in schema public to service_role;
+
 -- 函式只給登入的人用
 revoke execute on function public.add_friend(text)    from public, anon;
 revoke execute on function public.remove_friend(uuid) from public, anon;

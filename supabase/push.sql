@@ -4,6 +4,11 @@
 -- =====================================================================
 alter table public.profiles add column if not exists last_reminded_on date;
 
+-- 推播程式用 service_role 讀寫資料表
+grant usage on schema public to service_role;
+grant all on all tables    in schema public to service_role;
+grant all on all sequences in schema public to service_role;
+
 create extension if not exists pg_cron;
 create extension if not exists pg_net with schema extensions;
 
