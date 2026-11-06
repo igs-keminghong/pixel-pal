@@ -208,6 +208,8 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
 .login-card p{margin:0;font-size:14px}
 .login-card .btn{min-height:30px;font-size:16px}
 .login-card .fine{font-size:12px;color:var(--muted)}
+.sign .demo-chip{grid-column:3;grid-row:1;font-size:12px;min-height:18px;line-height:18px;padding:0 6px;border-width:9px}
+.sign:has(.demo-chip:not([hidden])) .streak{display:none}
 .login-card .fine a,.note a{color:#A6431C;margin-left:6px}
 @media (prefers-reduced-motion: reduce){.login-pet{animation:none}}
 </style>
@@ -220,6 +222,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
       <img class="ic" src="assets/ic_cal.png" alt="">
       <div class="d" id="hdr-date">—<small id="hdr-sub"></small></div>
       <div class="streak" title="連續打開天數"><img src="assets/star.png" alt=""><span id="streak-n">1 天</span></div>
+      <button class="btn gold demo-chip" id="demo-chip" hidden>示範 · 登入</button>
     </div>
   </header>
 
@@ -682,9 +685,10 @@ async function connectCalendar(){if(!sb)return;try{sessionStorage.setItem('ppal2
     queryParams:{prompt:'consent',include_granted_scopes:'true',login_hint:USER&&USER.email||''}}});
   if(error)toast('連結失敗：'+error.message);}
 $('#btn-login').addEventListener('click',signIn);
-$('#btn-demo').addEventListener('click',()=>{save('demo',true);$('#login').hidden=true;startDemo()});
-function startDemo(){MODE='demo';settings();refreshAll();friends();}
-async function startLive(session){MODE='live';USER=session.user;ME=USER.id;$('#login').hidden=true;keepToken(session.provider_token);
+$('#btn-demo').addEventListener('click',()=>{$('#login').hidden=true;startDemo()});
+$('#demo-chip').addEventListener('click',()=>{$('#login').hidden=false});
+function startDemo(){MODE='demo';$('#demo-chip').hidden=false;settings();refreshAll();friends();}
+async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=session.user;ME=USER.id;$('#login').hidden=true;keepToken(session.provider_token);
   FRIENDS.length=0;Object.keys(MSGS).forEach(k=>delete MSGS[k]);st.unread={};st.liveEv=[];
   const p=await sb.from('profiles').select('*').eq('id',ME).single();
   if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
@@ -700,7 +704,6 @@ async function boot(){
   const {data:{session}}=await sb.auth.getSession();
   if(location.search.includes('code=')||location.hash.includes('access_token'))history.replaceState(null,'',location.pathname);
   if(session){await startLive(session);return}
-  if(load('demo',false)){startDemo();return}
   startDemo();$('#login').hidden=false;}
 boot();
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
