@@ -379,6 +379,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const SB_URL='https://oqdizogpzqqxxlbfymfk.supabase.co';
 const SB_KEY='sb_publishable_3PSolGhZ6Z7jy_GJY9N9zw_QEdiys_H';   // publishable key: safe to ship in the page
 const CAL_SCOPE='https://www.googleapis.com/auth/calendar.readonly';
+const VAPID_PUBLIC='BP8hoSuWi-gjZzV4DgwbeNwlmu7ZCiHbnfVkbAsD9tvk-hz6KZfBP1Omt20afHQ1-iJUedSi7LL_jjGiO3LEV-k';   // public half of the push key pair (the private half lives in Supabase secrets)
 const sb=window.supabase&&!window.PIXELPAL_PREVIEW?window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}}):null;
 let MODE='demo', ME=null, USER=null, PROFILE=null;
 const isLive=()=>MODE==='live';
@@ -394,7 +395,7 @@ function petImg(p,a='idle'){const im=new Image();im.src=art(PETS[p]?p:'shiba',a)
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
-  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null,dayPick:null};
+  userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null,dayPick:null,pushOn:false};
 if(!st.name)st.name=PETS[st.pet].def;
 
 function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -682,15 +683,54 @@ function settings(){const box=$('#pets');box.innerHTML='';
     box.appendChild(b)});
   $('#set-name').value=st.name;if(![...$('#set-time').options].some(x=>x.value===st.time))$('#set-time').add(new Option(st.time,st.time));$('#set-time').value=st.time;$('#set-scene').value=st.scene;account();}
 $('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[st.pet].def;save('name',st.name);home();saveProfile()});
-$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();home();toast(`每晚 ${st.time} 提醒你`)});
+$('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();home();renderPush();toast(`每晚 ${st.time} 提醒你`)});
 $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scene',st.scene);home();toast('場景已切換，回到「夥伴」看看')});
+/* ---------- nightly push (Web Push) ---------- */
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const pushSupported=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+function b64uBytes(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+function pushState(){if(isIOS&&!standalone())return 'ios-home';if(!pushSupported())return 'unsupported';
+  if(Notification.permission==='denied')return 'denied';return st.pushOn?'on':'off'}
+function pushRowHTML(){const s=pushState(),t=esc(st.time);
+  const info={'ios-home':'iPhone 要先用 Safari「分享 › 加入主畫面」，再從主畫面的圖示打開，才能開啟通知。',
+    unsupported:'這個瀏覽器不支援通知，請改用 Chrome 或 Safari。',
+    denied:'通知被封鎖了。到手機的「設定 › 通知」找到這個 App 或瀏覽器，允許通知後再回來。',
+    on:`已開啟，每晚 ${t} 提醒你明天的行程。`,off:`開啟後，每晚 ${t} 夥伴會傳通知提醒你。`}[s];
+  const btns=s==='on'?'<button class="btn wood" id="btn-push-test">測試</button><button class="btn wood" id="btn-push-off">關閉</button>':
+    s==='off'?'<button class="btn gold" id="btn-push-on">開啟通知</button>':'';
+  return `<div><strong>每晚推播</strong><p>${info}</p></div><div class="actions" style="flex-wrap:nowrap">${btns}</div>`}
+function bindPush(){const on=$('#btn-push-on'),off=$('#btn-push-off'),test=$('#btn-push-test');
+  if(on)on.onclick=enablePush;if(off)off.onclick=disablePush;if(test)test.onclick=testPush;}
+function renderPush(){const r=$('#push-row');if(r){r.innerHTML=pushRowHTML();bindPush()}}
+async function savePushSub(sub){const j=sub.toJSON();
+  const {error}=await sb.from('push_subscriptions').upsert({user_id:ME,endpoint:j.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+  if(error)throw error}
+async function enablePush(){try{
+    const perm=await Notification.requestPermission();if(perm!=='granted'){renderPush();toast('沒有允許通知');return}
+    const reg=await navigator.serviceWorker.ready;
+    const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uBytes(VAPID_PUBLIC)});
+    await savePushSub(sub);st.pushOn=true;renderPush();toast('已開啟每晚提醒！按「測試」看看效果');}
+  catch(e){toast('開啟失敗：'+(e.message||e))}}
+async function disablePush(){try{const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+    if(sub){await sb.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);await sub.unsubscribe()}
+    st.pushOn=false;renderPush();toast('已關閉每晚提醒')}catch(e){toast('關閉失敗：'+(e.message||e))}}
+async function testPush(){try{toast('傳送中…');const {data:{session}}=await sb.auth.getSession();
+    const r=await fetch(SB_URL+'/functions/v1/nightly-reminder',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({test:true})});
+    const j=await r.json().catch(()=>({}));
+    if(r.status===404)toast('還沒部署推播程式（nightly-reminder）');else if(!r.ok)toast('測試失敗：'+(j.error||r.status));
+    else toast(j.sent?'已送出，幾秒內會收到通知':'沒有找到這台裝置的訂閱，請先關閉再開啟一次');}
+  catch(e){toast('測試失敗：'+(e.message||e))}}
+async function syncPush(){if(!pushSupported()||(isIOS&&!standalone()))return;try{
+    const reg=await navigator.serviceWorker.ready;const sub=await reg.pushManager.getSubscription();
+    st.pushOn=!!sub&&Notification.permission==='granted';if(st.pushOn)await savePushSub(sub);renderPush()}catch(e){}}
 function account(){const box=$('#acct');
   if(isLive()){const nm=PROFILE?PROFILE.display_name:'';const em=USER?USER.email:'';
     box.innerHTML=`<div class="conn"><div><strong>${esc(nm)}</strong><p>${esc(em)}</p></div><button class="btn wood" id="btn-logout">登出</button></div>
       <div class="conn"><div><strong>Google 日曆</strong><p>${calLinked()?'上次同步 '+esc(st.lastSync||'—'):'未連結，連結後夥伴才能提醒行程'}</p></div><button class="btn gold" id="btn-sync">${calLinked()?'同步日曆':'連結日曆'}</button></div>${st.calErr?`<p class="cal-err">${esc(st.calErr)}</p>`:''}
-      <div class="conn"><div><strong>每晚推播</strong><p>下一步開放</p></div><span class="tag">即將推出</span></div>`;
+      <div class="conn" id="push-row">${pushRowHTML()}</div>`;
     $('#btn-logout').onclick=async()=>{save('calLinked',false);save('lastSync',null);await sb.auth.signOut();try{sessionStorage.clear()}catch(e){}location.reload()};
-    $('#btn-sync').onclick=()=>doSync(true);
+    $('#btn-sync').onclick=()=>doSync(true);bindPush();
     $('#mode-note').textContent='你的行程、好友和訊息都存在雲端，換手機登入同一個 Google 帳號也看得到。';}
   else{box.innerHTML=`<div class="conn"><div><strong>示範模式</strong><p>登入後才會讀取你的 Google 日曆、和好友聊天</p></div><button class="btn gold" id="btn-login2">登入</button></div>`;
     $('#btn-login2').onclick=()=>sb?signIn():toast('目前連不到伺服器，請稍後再試');
@@ -735,7 +775,7 @@ async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=s
   if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
     save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;
     const tz=(Intl.DateTimeFormat().resolvedOptions()||{}).timeZone;if(tz&&PROFILE.timezone!==tz)sb.from('profiles').update({timezone:tz}).eq('id',ME).then(()=>{PROFILE.timezone=tz});}
-  settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();
+  settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();syncPush();
   $('#app').classList.remove('booting');
   let want=false;try{want=sessionStorage.getItem('ppal2:wantCal')==='1';sessionStorage.removeItem('ppal2:wantCal')}catch(e){}
   if(want)doSync(true,true);else if(gtoken()&&calLinked())doSync(false);}

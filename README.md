@@ -77,8 +77,37 @@ git push -u origin main
 | `bubble_body / bubble_tail.png` | 對話框（框身與尾巴分開，框身四邊等比縮放） |
 | `ic_*.png` | 圖示 |
 
-## 接下來（第二階段）
+## 後端（Supabase）與 Google 登入
 
-1. Supabase：帳號、好友、訊息、圖片儲存
-2. Google 登入 + 讀取 Google 日曆（未來 7 天）
-3. 每晚依設定時間推播「明天的行程」
+- Supabase 專案：`https://oqdizogpzqqxxlbfymfk.supabase.co`（網址與 publishable key 寫在 `index.html` 開頭，這兩個本來就是公開值）
+- 資料庫結構：`supabase/schema.sql`（在 Supabase 的 SQL Editor 執行，可重複執行）
+- **絕對不要**把 `secret` / `service_role` 金鑰放進這個專案或 git。
+
+### Google Cloud
+1. <https://console.cloud.google.com> 建立專案 `pixel-pal`
+2. APIs & Services → Library → 啟用 **Google Calendar API**
+3. Google Auth Platform（OAuth 同意畫面）→ 對象選 **External**，填 App 名稱與信箱
+4. Data Access → Add scopes → 勾 `.../auth/calendar.readonly`
+5. Audience → Test users → 加入自己和朋友的 Gmail（測試模式上限 100 人）
+6. Clients → Create client → **Web application**
+   - Authorized JavaScript origins：`https://igs-keminghong.github.io`、`http://localhost:8000`
+   - Authorized redirect URIs：`https://oqdizogpzqqxxlbfymfk.supabase.co/auth/v1/callback`
+7. 複製 Client ID / Client secret
+
+### Supabase
+1. Authentication → Sign In / Providers → **Google** → 啟用，貼上 Client ID / Client secret
+2. Authentication → URL Configuration
+   - Site URL：`https://igs-keminghong.github.io/pixel-pal/`
+   - Redirect URLs：加 `https://igs-keminghong.github.io/pixel-pal/**` 和 `http://localhost:8000/**`
+
+### 已知限制（測試模式）
+- Google 存取權杖約 1 小時有效，日曆在登入當下與手動按「同步日曆」時更新；之後打開 App 會先用上次同步的資料。
+- 在 App 裡新增的行程只存在 App，不會寫回 Google 日曆。
+
+## 每晚推播
+
+- 前端：設定頁「開啟通知」→ 訂閱存到 `push_subscriptions`；`sw.js` 處理 `push` / `notificationclick`
+- 後端：`supabase/functions/nightly-reminder/index.ts`（不需外部套件，自帶 Web Push 加密）
+- 排程：`supabase/push.sql`，pg_cron 每 15 分鐘呼叫一次，函式依每個人的時區與提醒時間決定要不要送
+- 金鑰：`secrets/push-secrets.txt`（已被 .gitignore 排除，**不要上傳**）。VAPID 公鑰另外寫在 `index.html`，那是公開值。
+- iPhone 需 iOS 16.4 以上，並且從「加入主畫面」的圖示打開才能開通知。

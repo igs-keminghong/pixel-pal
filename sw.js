@@ -1,5 +1,5 @@
 // 像素行程夥伴 service worker：離線快取。改了檔案後把 VERSION 加 1，手機才會抓到新版。
-const VERSION='v11';
+const VERSION='v12';
 const CACHE='pixel-pal-'+VERSION;
 const CORE=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','vendor/supabase-2.118.0.js',
   'assets/badge.png',
@@ -52,3 +52,13 @@ self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;c
   // 圖片與字型：先用快取，沒有才抓網路並存起來
   if(u.origin===location.origin||/fonts\.(googleapis|gstatic)\.com/.test(u.host)){
     e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok||res.type==='opaque'){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res})))}});
+
+// ---- 每晚推播 ----
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_){d={body:e.data&&e.data.text()}}
+  e.waitUntil(self.registration.showNotification(d.title||'像素行程夥伴',{body:d.body||'',icon:d.icon||'icons/icon-192.png',badge:'icons/icon-192.png',
+    tag:d.tag||'pixel-pal',renotify:true,data:{url:d.url||'./'}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();
+  const url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
+  e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{
+    for(const c of cs){if(c.url.startsWith(self.registration.scope)&&'focus' in c)return c.focus()}
+    return clients.openWindow(url)}))});
