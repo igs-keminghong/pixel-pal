@@ -213,6 +213,15 @@ create policy "push own" on public.push_subscriptions
   for all to authenticated
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 
+-- 明確授權（建立專案時沒勾「Automatically expose new tables」也能正常運作）
+grant usage on schema public to anon, authenticated;
+grant select                         on public.profiles           to authenticated;
+grant select                         on public.friendships        to authenticated;
+grant select, insert                 on public.messages           to authenticated;
+grant select, insert, update, delete on public.events             to authenticated;
+grant select, insert, update, delete on public.push_subscriptions to authenticated;
+grant execute on function public.is_friend(uuid, uuid) to authenticated;
+
 -- 函式只給登入的人用
 revoke execute on function public.add_friend(text)    from public, anon;
 revoke execute on function public.remove_friend(uuid) from public, anon;
