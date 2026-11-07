@@ -389,8 +389,8 @@ const PETS={
   shiba:{label:'柴犬',def:'小柴',h:{idle:256,happy:258,sleep:208,alert:252}},
   beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
   parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}},
-  /* new mascot: art arrives later. Sizes are read from the images; hidden from the picker until assets/obsidian_idle.png exists */
-  obsidian:{label:'黑曜',def:'黑曜',h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
+  /* 4th mascot: hidden from the picker until assets/cat_idle.png exists; sizes are read from the images */
+  cat:{label:'貓咪',def:'捨令',h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
 const AVAIL={shiba:true,beagle:true,parrot:true};
 const petKey=p=>AVAIL[p]&&PETS[p]?p:'shiba';
 const art=(p,a)=>`assets/${p}_${a}.png`;
@@ -454,24 +454,24 @@ function autoDay(){const today=evOn(dkey(0));if(new Date()>=remindAt())return 1;
 function panelDay(){return st.dayPick!=null?st.dayPick:autoDay()}
 function line(){const p=petKey(st.pet),day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
   const today=evOn(dkey(0)),tm=evOn(dkey(1)),n=tm.length,f=tm[0];
-  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='obsidian'?'你的行程我還看不到。\n去設定把日曆連起來。':p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
+  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='cat'?'……咦？你的行程在哪裡？\n要去設定連日曆嗎……？':p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
   if(day===0){const up=today.filter(e=>e.t!=='整天'&&!isPast(e)),nx=up[0]||today.find(e=>e.t==='整天'),r=up.length;
-    if(!nx)return p==='obsidian'?'今天沒事。\n難得清閒，別浪費。':p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
-    if(p==='obsidian')return `下一個 ${T(nx)}「${nx.title}」。\n${r>1?`還有 ${r} 件，別讓我等。`:'最後一件，搞定它。'}`;
+    if(!nx)return p==='cat'?'今天……好像沒事耶。\n那我要發呆了喔。':p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
+    if(p==='cat')return `嗯……下一個是什麼來著？\n喔對，${T(nx)}「${nx.title}」。`;
     if(p==='parrot')return `下一個！下一個！\n${T(nx)}「${nx.title}」啾！`;
     if(p==='beagle')return `嗅嗅！下一個是 ${T(nx)}「${nx.title}」！\n${r>1?`今天還有 ${r} 件事！`:'今天最後一件了！'}`;
     return `哼，下一個是 ${T(nx)}「${nx.title}」。\n${r>1?`今天還剩 ${r} 件事。`:'今天就剩這件了。'}`;}
   const tn=tonight(),k=tn.length;
   if(k){const head=k>1?`今晚還有 ${k} 件事，下一個 ${tn[0].t}「${tn[0].title}」！`:`今晚還有 ${tn[0].t}「${tn[0].title}」！`;
-    const tail=n?(p==='obsidian'?`明天 ${n} 件，${T(f)} 先去「${f.title}」。`:p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
+    const tail=n?(p==='cat'?`然後明天……${T(f)}「${f.title}」？`:p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
     return head+'\n'+tail;}
-  if(p==='obsidian')return n?`明天 ${n} 件事。\n${T(f)}「${f.title}」，記住了。`:'明天沒事。\n難得放假，睡飽一點。';
+  if(p==='cat')return n?`……咦？明天有 ${n} 件事耶。\n${T(f)}「${f.title}」，好像是。`:'明天……沒事？\n那就一起睡到中午吧。';
   if(p==='parrot')return n?`明天！明天！${n} 件事！\n${T(f)}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
   if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${T(f)}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
   return n?`哼，明天 ${n} 件事。\n${T(f)}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
 function homeLine(){if(!sleeping())return line();const tn=tonight();
   return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
-const TAP={obsidian:['……幹嘛。','別戳。（尾巴亮了一下）','哼，有事快說。'],parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
+const TAP={cat:['……？','喵？（歪頭）','剛剛要說什麼……忘了。'],parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[petKey(st.pet)].h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize(),P=petKey(st.pet);const src=art(P,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);

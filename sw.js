@@ -1,8 +1,13 @@
 // 像素行程夥伴 service worker：離線快取。改了檔案後把 VERSION 加 1，手機才會抓到新版。
-const VERSION='v15';
+const VERSION='v16';
 const CACHE='pixel-pal-'+VERSION;
 const CORE=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','vendor/supabase-2.118.0.js',
   'assets/badge.png',
+  'assets/cat_alert.png',
+  'assets/cat_blink.png',
+  'assets/cat_happy.png',
+  'assets/cat_idle.png',
+  'assets/cat_sleep.png',
   'assets/beagle_alert.png',
   'assets/beagle_blink.png',
   'assets/beagle_happy.png',
