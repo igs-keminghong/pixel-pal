@@ -202,6 +202,22 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
 .sheet .inner{display:flex;flex-direction:column;gap:10px;padding-top:12px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .viewer{align-items:center;flex-direction:column;gap:16px;background:rgba(20,12,6,.9)}
+.news-wrap{align-items:center}
+.news{width:calc(100% - 20px);max-width:400px;max-height:calc(100% - 60px);display:flex;flex-direction:column}
+.news .inner{overflow-y:auto;gap:12px;padding:46px 8px 0}
+.news .ver{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-family:var(--f-pixel)}
+.news .ver b{font-weight:400;font-size:16px}
+.news .ver span{font-size:12px;color:var(--muted)}
+.news .hero{display:grid;grid-template-columns:96px 1fr;gap:10px;align-items:center;background:var(--pill);border:3px solid var(--pillb);border-radius:14px;padding:8px 10px}
+.news .hero .art{height:96px;display:grid;place-items:end center;background:#CFE8F5;border:3px solid var(--shade);border-radius:12px;overflow:hidden}
+.news .hero .art img{height:88%;width:auto}
+.news .hero strong{display:block;font-family:var(--f-pixel);font-weight:400;font-size:16px}
+.news .hero .tag{display:inline-block;margin-bottom:2px;background:var(--gold);color:#5A2E10;border-color:#D89A2C}
+.news .hero p{margin:2px 0 0;font-size:13px}
+.news ul{margin:0;padding-left:1.2em;font-size:13.5px;display:flex;flex-direction:column;gap:4px}
+.news .old{border-top:2px dashed var(--pillb);padding-top:10px;opacity:.85}
+.news .actions{padding-top:8px}
+.note a+a{margin-left:14px}
 .viewer img{max-width:100%;max-height:60vh;border:3px solid var(--cream)}
 .viewer p{color:var(--cream);font-size:13px;text-align:center;margin:0;max-width:34ch}
 .notif{position:absolute;left:8px;right:8px;top:8px;z-index:60;display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:center;transform:translateY(-160%);transition:transform .35s steps(5)}
@@ -304,7 +320,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
       </div>
       <div class="card stack" id="acct"></div>
       <p class="note card" id="mode-note"></p>
-      <p class="note card"><a href="privacy.html">隱私權政策</a></p>
+      <p class="note card"><a href="#" id="news-open">更新公告</a><a href="privacy.html">隱私權政策</a></p>
     </section>
   </main>
 
@@ -349,6 +365,15 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
         <div class="actions"><button class="btn gold" type="submit">加入行程</button><button class="btn wood" type="button" id="ev-cancel">取消</button></div>
       </div>
     </form>
+  </div>
+
+  <!-- what's new -->
+  <div class="overlay news-wrap" id="news" hidden>
+    <div class="news panel frame" role="dialog" aria-labelledby="news-h">
+      <div class="plaque btn wood" id="news-h"><img src="assets/ic_mail.png" alt="">更新公告</div>
+      <div class="inner" id="news-body"></div>
+      <div class="actions"><button class="btn gold" id="news-ok">知道了</button></div>
+    </div>
   </div>
 
   <!-- image viewer -->
@@ -691,6 +716,29 @@ $('#viewer-dl').addEventListener('click',async()=>{const src=$('#viewer-img').sr
     setTimeout(()=>URL.revokeObjectURL(url),4000);toast('已下載原圖')}
   catch(err){if(err&&err.name==='AbortError')return;toast('下載失敗，請長按圖片儲存')}});
 
+/* ---------- what's new (add a new entry at the TOP for every release) ---------- */
+const NEWS=[
+  {v:'1.1',date:'2026-11-07',pets:[{key:'cat',name:'捨令',kind:'英國短毛貓',desc:'有點呆、常常發呆的胖胖英短。摸她會歪頭蹭你的手，提醒你行程時常常講到一半忘記。'}],
+   items:['新夥伴：貓咪「捨令」加入，到「設定 › 選擇夥伴」就能換','首頁會依時間顯示今天或明天的行程，今晚還有行程時夥伴會提醒你','每晚推播上線，設定頁可以開啟通知、叫夥伴「打聲招呼」','招牌、對話框和整體畫面細節優化']},
+  {v:'1.0',date:'2026-11-06',pets:[],
+   items:['像素行程夥伴上線！柴犬、米格魯、鸚鵡三位夥伴','Google 登入、讀取 Google 日曆','好友碼、即時聊天、傳圖片、戳一下']}];
+const RETURNING=(()=>{try{return localStorage.getItem('ppal2:pet')!==null||localStorage.getItem('ppal2:newsSeen')!==null}catch(e){return false}})();
+const verNum=v=>v.split('.').reduce((a,x)=>a*1000+(+x||0),0);
+function newsHTML(list){return list.map((n,i)=>`<div class="${i?'old':''}">
+  <div class="ver"><b>版本 ${esc(n.v)}</b><span>${esc(n.date)}</span></div>
+  ${n.pets.map(p=>`<div class="hero"><div class="art"><img src="${art(p.key,'happy')}" alt=""></div><div><span class="tag">新夥伴</span><strong>${esc(p.kind)}「${esc(p.name)}」</strong><p>${esc(p.desc)}</p></div></div>`).join('')}
+  <ul>${n.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}
+function showNews(all){const seen=load('newsSeen',null),list=all?NEWS:NEWS.filter(n=>!seen||verNum(n.v)>verNum(seen));if(!list.length)return;
+  $('#news-body').innerHTML=newsHTML(list);$('#news').hidden=false;}
+function closeNews(){$('#news').hidden=true;save('newsSeen',NEWS[0].v)}
+$('#news-ok').addEventListener('click',closeNews);
+$('#news').addEventListener('click',e=>{if(e.target.id==='news')closeNews()});
+$('#news-open').addEventListener('click',e=>{e.preventDefault();showNews(true)});
+/* existing users (signed in before) see what's new; brand-new users skip straight to the app */
+function maybeNews(){if(window.PIXELPAL_PREVIEW)return;
+  if(!RETURNING){save('newsSeen',NEWS[0].v);return}
+  showNews(false)}
+
 /* ---------- settings ---------- */
 let saveT=null;
 function saveProfile(){if(!isLive())return;clearTimeout(saveT);saveT=setTimeout(async()=>{
@@ -797,7 +845,7 @@ async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=s
   if(p.error){toast('讀取個人資料失敗：'+p.error.message)}else{PROFILE=p.data;st.pet=PROFILE.pet;st.name=PROFILE.pet_name;st.time=String(PROFILE.remind_time).slice(0,5);
     save('pet',st.pet);save('name',st.name);save('time',st.time);$('#mycode').textContent=PROFILE.friend_code;
     const tz=(Intl.DateTimeFormat().resolvedOptions()||{}).timeZone;if(tz&&PROFILE.timezone!==tz)sb.from('profiles').update({timezone:tz}).eq('id',ME).then(()=>{PROFILE.timezone=tz});}
-  settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();syncPush();
+  settings();await Promise.all([loadEvents(),loadFriends()]);refreshAll();friends();subscribe();syncPush();maybeNews();
   $('#app').classList.remove('booting');
   let want=false;try{want=sessionStorage.getItem('ppal2:wantCal')==='1';sessionStorage.removeItem('ppal2:wantCal')}catch(e){}
   if(want)doSync(true,true);else if(gtoken()&&calLinked())doSync(false);}
