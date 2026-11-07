@@ -82,8 +82,12 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 .pet img{transform-origin:50% 100%}
 .pet.bob img{transform:scale(1.015,.97)}
 .pet.jump img{animation:jump .7s steps(5) 1}
-.pet.wiggle img{animation:wiggle .9s steps(6) 1}
-@keyframes wiggle{0%,100%{transform:rotate(0)}20%{transform:rotate(-4deg)}40%{transform:rotate(4deg)}60%{transform:rotate(-3deg)}80%{transform:rotate(2deg)}}
+.pet.wiggle img{animation:wiggle 1.2s ease-in-out 1}
+/* lying poses rock gently on their back around the body centre, not the feet */
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}50%{transform:rotate(2deg)}75%{transform:rotate(-1deg)}}
+.pet.lying img{transform-origin:50% 72%;margin-bottom:-8px}
+.pet.lying.bob img{transform:none}
+.pet.lying::before{left:6%;right:6%;bottom:-6px;height:18px}
 @keyframes jump{0%,100%{transform:translateY(0)}35%{transform:translateY(-18px)}65%{transform:translateY(-10px)}}
 .bubble{position:absolute;bottom:60%;left:50%;width:max-content;max-width:min(280px,calc(100% - 12px));border:17px solid transparent;
   border-image:url(assets/bubble_body.png) 60 fill / 17px stretch;
@@ -392,7 +396,7 @@ const PETS={
   beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
   parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}},
   /* 4th mascot: hidden from the picker until assets/cat_idle.png exists; sizes are read from the images */
-  cat:{label:'貓咪',def:'捨令',tap:'wiggle',h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
+  cat:{label:'貓咪',def:'捨令',tap:'wiggle',lie:{happy:1,sleep:1},h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
 const AVAIL={shiba:true,beagle:true,parrot:true};
 const petKey=p=>AVAIL[p]&&PETS[p]?p:'shiba';
 const art=(p,a)=>`assets/${p}_${a}.png`;
@@ -477,6 +481,7 @@ const TAP={cat:['……？','喵？（歪頭）','剛剛要說什麼……忘了
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[petKey(st.pet)].h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize(),P=petKey(st.pet);const src=art(P,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
+  $('#pet').classList.toggle('lying',!!(PETS[P].lie&&PETS[P].lie[pose]));
   const h=Math.round(PETS[P].h[pose]*k);im.style.height=h+'px';
   placeBubble();}
 /* bubble hugs its text; its tail points down at the mascot's head */
