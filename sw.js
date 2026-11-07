@@ -1,5 +1,5 @@
 // 像素行程夥伴 service worker：離線快取。改了檔案後把 VERSION 加 1，手機才會抓到新版。
-const VERSION='v20';
+const VERSION='v21';
 const CACHE='pixel-pal-'+VERSION;
 const CORE=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','vendor/supabase-2.118.0.js',
   'assets/badge.png',
@@ -65,5 +65,10 @@ self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(_)
 self.addEventListener('notificationclick',e=>{e.notification.close();
   const url=new URL((e.notification.data&&e.notification.data.url)||'./',self.registration.scope).href;
   e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{
-    for(const c of cs){if(c.url.startsWith(self.registration.scope)&&'focus' in c)return c.focus()}
-    return clients.openWindow(url)}))});
+    const news=url.includes('from=news');
+    const fresh=news?url+(url.includes('?')?'&':'?')+'t='+Date.now():url;
+    for(const c of cs){if(c.url.startsWith(self.registration.scope)&&'focus' in c){
+      /* release push: reload the open app so it runs the newest version and shows the announcement */
+      if(news&&'navigate' in c)return c.navigate(fresh).then(w=>(w||c).focus()).catch(()=>c.focus());
+      return c.focus()}}
+    return clients.openWindow(fresh)}))});

@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
           body: String(body.broadcast.body).replaceAll("{name}", name),
           icon: `assets/${p.pet || "shiba"}_happy.png`,
           tag: "news",
-          url: "./",
+          url: "./?from=news",
         });
         try {
           const status = await sendPush(s, payload, VAPID);
