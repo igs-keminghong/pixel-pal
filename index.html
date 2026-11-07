@@ -85,6 +85,10 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 .pet.wiggle img{animation:wiggle 1.2s ease-in-out 1}
 /* lying poses rock gently on their back around the body centre, not the feet */
 @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}50%{transform:rotate(2deg)}75%{transform:rotate(-1deg)}}
+.pet.rub img{animation:rub 1.4s ease-in-out 1}
+@keyframes rub{0%,100%{transform:rotate(0) translateX(0)}20%{transform:rotate(3deg) translateX(3px)}40%{transform:rotate(-1deg) translateX(-1px)}60%{transform:rotate(3deg) translateX(3px)}80%{transform:rotate(-1deg) translateX(-1px)}}
+.pet.purr img{animation:purr 1.6s ease-in-out 1}
+@keyframes purr{0%,100%{transform:scale(1,1)}25%{transform:scale(1.03,.96)}50%{transform:scale(1,1)}75%{transform:scale(1.03,.96)}}
 .pet.lying img{transform-origin:50% 72%;margin-bottom:-8px}
 .pet.lying.bob img{transform:none}
 .pet.lying::before{left:6%;right:6%;bottom:-6px;height:18px}
@@ -396,7 +400,7 @@ const PETS={
   beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
   parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}},
   /* 4th mascot: hidden from the picker until assets/cat_idle.png exists; sizes are read from the images */
-  cat:{label:'貓咪',def:'捨令',tap:'wiggle',lie:{happy:1,sleep:1},h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
+  cat:{label:'貓咪',def:'捨令',tap:'rub',lie:{sleep:1},h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
 const AVAIL={shiba:true,beagle:true,parrot:true};
 const petKey=p=>AVAIL[p]&&PETS[p]?p:'shiba';
 const art=(p,a)=>`assets/${p}_${a}.png`;
@@ -511,11 +515,11 @@ function home(){bubble(homeLine());setPose(pose());
     (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你行程。</p>':`<p class="empty">${day?'明天':'今天'}沒有行程，好好休息。</p>`);}
 $('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
 function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(homeLine())},ms)}
-$('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove('jump','wiggle');void p.offsetWidth;p.classList.add(fx);
+$('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove('jump','wiggle','purr','rub');void p.offsetWidth;p.classList.add(fx);
   mood('happy',1600);const arr=TAP[petKey(st.pet)];bubble(arr[Math.floor(Math.random()*arr.length)]);
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
   for(let i=0;i<3;i++){const h=document.createElement('img');h.src='assets/ic_heart.png';h.alt='';h.className='float-heart';
-    h.style.left=(pr.left-r.left+pr.width*(.2+i*.3))+'px';h.style.top=(pr.top-r.top+10+(i%2)*16)+'px';h.style.animationDelay=(i*120)+'ms';
+    h.style.left=(pr.left-r.left+pr.width*(.2+i*.3))+'px';h.style.top=(pr.top-r.top+($('#pet').classList.contains('lying')?-24:10)+(i%2)*16)+'px';h.style.animationDelay=(i*120)+'ms';
     stage.appendChild(h);setTimeout(()=>h.remove(),1600);}});
 addEventListener('resize',()=>setPose(pose()));
 
