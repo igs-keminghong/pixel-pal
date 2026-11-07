@@ -15,6 +15,11 @@
 3. `sw.js` 的 `VERSION` 加 1，玩家手機才會抓到新檔案。
 4. 有改資料庫或推播程式時，照該版本的「上線步驟」處理。
 5. `git commit`、`git push`。
+6. 上線後要通知玩家時，到 Supabase SQL Editor 執行：
+   ```sql
+   select public.send_news('有新版本囉！……快來看看～');
+   ```
+   訊息裡的 `{name}` 會換成每個人自己的夥伴名字。只在有明顯更新時發，不要太頻繁。
 
 ---
 
@@ -72,6 +77,8 @@ grant execute on all functions in schema public to service_role;
   - `CRON_SECRET`
   - `SB_SECRET_KEY`
 - 部署 `nightly-reminder`，並關閉 **Verify JWT**。
+- 執行 `secrets/push-secrets.txt` 第 [3] 段，建立 `send_news()`，之後發新版就能發推播。
+- 推播程式要重新部署：這版新增了廣播功能。
 
 ---
 

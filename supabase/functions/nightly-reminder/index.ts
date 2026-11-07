@@ -192,6 +192,32 @@ Deno.serve(async (req) => {
     }
     // ---- scheduled run -----------------------------------------------------
     if (req.headers.get("x-cron-secret") !== env("CRON_SECRET")) return json({ error: "forbidden" }, 403);
+    // ---- broadcast (release news): body {"broadcast":{"body":"...","title":"..."}} ----------
+    if (body.broadcast && body.broadcast.body) {
+      const subs = await rest("push_subscriptions?select=user_id,endpoint,p256dh,auth");
+      const ids = [...new Set(subs.map((s: any) => s.user_id))];
+      const profiles = ids.length ? await rest(`profiles?select=id,pet,pet_name&id=in.(${ids.join(",")})`) : [];
+      const byId: Record<string, any> = {};
+      for (const p of profiles) byId[p.id] = p;
+      let sent = 0;
+      for (const s of subs) {
+        const p = byId[s.user_id] || {};
+        const name = p.pet_name || "夥伴";
+        const payload = JSON.stringify({
+          title: (body.broadcast.title || "{name} 帶來新消息").replaceAll("{name}", name),
+          body: String(body.broadcast.body).replaceAll("{name}", name),
+          icon: `assets/${p.pet || "shiba"}_happy.png`,
+          tag: "news",
+          url: "./",
+        });
+        try {
+          const status = await sendPush(s, payload, VAPID);
+          if (status === 404 || status === 410) await rest(`push_subscriptions?endpoint=eq.${encodeURIComponent(s.endpoint)}`, { method: "DELETE" });
+          else if (status >= 200 && status < 300) sent++;
+        } catch (e) { console.log("broadcast error", String(e)); }
+      }
+      return json({ broadcast: true, subscriptions: subs.length, sent });
+    }
     const subs = await rest("push_subscriptions?select=user_id,endpoint,p256dh,auth");
     const byUser: Record<string, any[]> = {};
     for (const s of subs) (byUser[s.user_id] ||= []).push(s);
