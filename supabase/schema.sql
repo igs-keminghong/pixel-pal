@@ -9,7 +9,7 @@ create table if not exists public.profiles (
   id           uuid primary key references auth.users(id) on delete cascade,
   display_name text not null default '新朋友',
   friend_code  text not null unique,
-  pet          text not null default 'shiba' check (pet in ('shiba','beagle','parrot')),
+  pet          text not null default 'shiba' check (pet in ('shiba','beagle','parrot','obsidian')),
   pet_name     text not null default '小柴' check (char_length(pet_name) <= 12),
   remind_time  time not null default '21:00',
   timezone     text not null default 'Asia/Taipei',
@@ -55,6 +55,10 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- 既有資料庫：放寬吉祥物種類（新增黑曜）
+alter table public.profiles drop constraint if exists profiles_pet_check;
+alter table public.profiles add constraint profiles_pet_check check (pet in ('shiba','beagle','parrot','obsidian'));
 
 -- ---------- 2. 好友關係（雙向各存一筆） ----------
 create table if not exists public.friendships (

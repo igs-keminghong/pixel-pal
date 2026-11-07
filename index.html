@@ -388,15 +388,22 @@ const isLive=()=>MODE==='live';
 const PETS={
   shiba:{label:'柴犬',def:'小柴',h:{idle:256,happy:258,sleep:208,alert:252}},
   beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
-  parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}}};
+  parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}},
+  /* new mascot: art arrives later. Sizes are read from the images; hidden from the picker until assets/obsidian_idle.png exists */
+  obsidian:{label:'黑曜',def:'黑曜',h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
+const AVAIL={shiba:true,beagle:true,parrot:true};
+const petKey=p=>AVAIL[p]&&PETS[p]?p:'shiba';
 const art=(p,a)=>`assets/${p}_${a}.png`;
-Object.keys(PETS).forEach(p=>['idle','happy','sleep','alert','blink'].forEach(a=>{new Image().src=art(p,a)}));
-function petImg(p,a='idle'){const im=new Image();im.src=art(PETS[p]?p:'shiba',a);im.alt='';return im}
+Object.keys(PETS).forEach(p=>['idle','happy','sleep','alert','blink'].forEach(a=>{const im=new Image();
+  im.onload=()=>{if(PETS[p].auto&&a!=='blink'){PETS[p].h[a]=im.naturalHeight;if(a==='idle'&&!AVAIL[p]){AVAIL[p]=true;onPetsChanged()}}};
+  im.src=art(p,a)}));
+function onPetsChanged(){if(typeof settings==='function'&&$('#pets'))settings();if(typeof home==='function')try{home()}catch(e){}if(typeof friends==='function')try{friends()}catch(e){}}
+function petImg(p,a='idle'){const im=new Image();im.src=art(petKey(p),a);im.alt='';return im}
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
   userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null,dayPick:null,pushOn:false};
-if(!st.name)st.name=PETS[st.pet].def;
+if(!st.name)st.name=(PETS[st.pet]||PETS.shiba).def;
 
 function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dkey(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return dkeyOf(d)}
@@ -445,34 +452,36 @@ function tonight(){if(new Date().getHours()<6)return [];return evOn(dkey(0)).fil
 function autoDay(){const today=evOn(dkey(0));if(new Date()>=remindAt())return 1;
   if(!today.some(e=>e.t==='整天'||!isPast(e)))return 1;return 0}
 function panelDay(){return st.dayPick!=null?st.dayPick:autoDay()}
-function line(){const p=st.pet,day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
+function line(){const p=petKey(st.pet),day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
   const today=evOn(dkey(0)),tm=evOn(dkey(1)),n=tm.length,f=tm[0];
-  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
+  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='obsidian'?'你的行程我還看不到。\n去設定把日曆連起來。':p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
   if(day===0){const up=today.filter(e=>e.t!=='整天'&&!isPast(e)),nx=up[0]||today.find(e=>e.t==='整天'),r=up.length;
-    if(!nx)return p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
+    if(!nx)return p==='obsidian'?'今天沒事。\n難得清閒，別浪費。':p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
+    if(p==='obsidian')return `下一個 ${T(nx)}「${nx.title}」。\n${r>1?`還有 ${r} 件，別讓我等。`:'最後一件，搞定它。'}`;
     if(p==='parrot')return `下一個！下一個！\n${T(nx)}「${nx.title}」啾！`;
     if(p==='beagle')return `嗅嗅！下一個是 ${T(nx)}「${nx.title}」！\n${r>1?`今天還有 ${r} 件事！`:'今天最後一件了！'}`;
     return `哼，下一個是 ${T(nx)}「${nx.title}」。\n${r>1?`今天還剩 ${r} 件事。`:'今天就剩這件了。'}`;}
   const tn=tonight(),k=tn.length;
   if(k){const head=k>1?`今晚還有 ${k} 件事，下一個 ${tn[0].t}「${tn[0].title}」！`:`今晚還有 ${tn[0].t}「${tn[0].title}」！`;
-    const tail=n?(p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
+    const tail=n?(p==='obsidian'?`明天 ${n} 件，${T(f)} 先去「${f.title}」。`:p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
     return head+'\n'+tail;}
+  if(p==='obsidian')return n?`明天 ${n} 件事。\n${T(f)}「${f.title}」，記住了。`:'明天沒事。\n難得放假，睡飽一點。';
   if(p==='parrot')return n?`明天！明天！${n} 件事！\n${T(f)}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
   if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${T(f)}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
   return n?`哼，明天 ${n} 件事。\n${T(f)}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
 function homeLine(){if(!sleeping())return line();const tn=tonight();
   return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
-const TAP={parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
+const TAP={obsidian:['……幹嘛。','別戳。（尾巴亮了一下）','哼，有事快說。'],parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
-function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[st.pet].h.idle}
-function setPose(pose){const im=$('#pet-img'),k=petSize();const src=art(st.pet,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
-  const h=Math.round(PETS[st.pet].h[pose]*k);im.style.height=h+'px';
+function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[petKey(st.pet)].h.idle}
+function setPose(pose){const im=$('#pet-img'),k=petSize(),P=petKey(st.pet);const src=art(P,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
+  const h=Math.round(PETS[P].h[pose]*k);im.style.height=h+'px';
   placeBubble();}
 /* bubble hugs its text; its tail points down at the mascot's head */
 function placeBubble(){requestAnimationFrame(()=>{const b=$('#bubble'),im=$('#pet-img'),stg=$('#stage');
   const sw=stg.clientWidth,sh=stg.clientHeight,iw=im.offsetWidth,ih=im.offsetHeight;if(!iw)return;
   b.style.maxWidth='';b.style.left='0px';const tl=b.querySelector('.tail');if(!tl)return;tl.hidden=false;
-  const k=petSize(),P=PETS[st.pet].h,tallest=Math.max(P.idle,P.happy,P.alert)*k,idleH=P.idle*k;
+  const k=petSize(),P=PETS[petKey(st.pet)].h,tallest=Math.max(P.idle,P.happy,P.alert)*k,idleH=P.idle*k;
   const bw=b.offsetWidth,bh=b.offsetHeight,TAILH=13,headX=sw*.47+iw*.08;
   let left=Math.round(headX-bw*.35);left=Math.max(6,Math.min(left,sw-6-bw));
   const ideal=Math.round(6+tallest+18+TAILH+4);
@@ -496,7 +505,7 @@ function home(){bubble(homeLine());setPose(pose());
 $('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
 function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(homeLine())},ms)}
 $('#pet').addEventListener('click',()=>{const p=$('#pet');p.classList.remove('jump');void p.offsetWidth;p.classList.add('jump');
-  mood('happy',1600);const arr=TAP[st.pet];bubble(arr[Math.floor(Math.random()*arr.length)]);
+  mood('happy',1600);const arr=TAP[petKey(st.pet)];bubble(arr[Math.floor(Math.random()*arr.length)]);
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
   for(let i=0;i<3;i++){const h=document.createElement('img');h.src='assets/ic_heart.png';h.alt='';h.className='float-heart';
     h.style.left=(pr.left-r.left+pr.width*(.2+i*.3))+'px';h.style.top=(pr.top-r.top+10+(i%2)*16)+'px';h.style.animationDelay=(i*120)+'ms';
@@ -595,7 +604,7 @@ $('#addf').addEventListener('submit',async e=>{e.preventDefault();const v=$('#ad
     if(error){const m=error.message||'';toast(/not found/.test(m)?'找不到這個好友碼':/yourself/.test(m)?'這是你自己的好友碼喔':'加好友失敗：'+m);return}
     $('#addf-code').value='';await loadFriends();friends();toast(`和 ${data.display_name} 成為好友了！`);return}
   const id='f'+v.slice(4);if(FRIENDS.some(f=>f.id===id)){toast('已經是好友了');return}
-  FRIENDS.push({id,name:'新朋友 '+v.slice(4),pet:Object.keys(PETS)[+v.slice(-1)%3],petName:'小夥伴'});
+  FRIENDS.push({id,name:'新朋友 '+v.slice(4),pet:['shiba','beagle','parrot'][+v.slice(-1)%3],petName:'小夥伴'});
   MSGS[id]=[{sys:1,x:'你們成為好友了',ts:now()}];save('friends',FRIENDS);save('msgs',MSGS);$('#addf-code').value='';friends();toast('已加入好友（示範）');});
 
 /* ---------- live: friends & messages ---------- */
@@ -635,7 +644,7 @@ function chatRender(){const id=st.chat,fr=FRIENDS.find(f=>f.id===id),box=$('#msg
   box.scrollTop=box.scrollHeight;}
 function openChat(id){st.chat=id;const fr=FRIENDS.find(f=>f.id===id);
   $('#chat-name').textContent=fr.name;$('#chat-sub').textContent=`夥伴：${(PETS[fr.pet]||PETS.shiba).label}「${fr.petName}」`;
-  const av=$('#chat-av');av.innerHTML='';av.appendChild(petImg(fr.pet));$('#poke-img').src=art(PETS[fr.pet]?fr.pet:'shiba','happy');
+  const av=$('#chat-av');av.innerHTML='';av.appendChild(petImg(fr.pet));$('#poke-img').src=art(petKey(fr.pet),'happy');
   if(isLive())markRead(id);else{st.unread[id]=0;save('unread',st.unread)}
   $('#chat').hidden=false;chatRender();friends();}
 $('#chat-back').addEventListener('click',()=>{$('#chat').hidden=true;st.chat=null;friends()});
@@ -676,14 +685,15 @@ let saveT=null;
 function saveProfile(){if(!isLive())return;clearTimeout(saveT);saveT=setTimeout(async()=>{
   const {error}=await sb.from('profiles').update({pet:st.pet,pet_name:st.name.slice(0,12),remind_time:st.time}).eq('id',ME);
   if(error)toast('設定儲存失敗：'+error.message)},600)}
-function settings(){const box=$('#pets');box.innerHTML='';
-  Object.entries(PETS).forEach(([k,sp])=>{const b=document.createElement('button');b.className='pick';b.setAttribute('role','radio');b.setAttribute('aria-checked',k===st.pet);
+function settings(){const box=$('#pets');box.innerHTML='';const list=Object.entries(PETS).filter(([k])=>AVAIL[k]);
+  box.style.gridTemplateColumns=`repeat(${list.length>3?2:3},minmax(0,1fr))`;
+  list.forEach(([k,sp])=>{const b=document.createElement('button');b.className='pick';b.setAttribute('role','radio');b.setAttribute('aria-checked',k===petKey(st.pet));
     const im=petImg(k);im.className='p';b.appendChild(im);const s=document.createElement('span');s.textContent=sp.label;b.appendChild(s);
-    b.addEventListener('click',()=>{const old=PETS[st.pet].def;st.pet=k;save('pet',k);
+    b.addEventListener('click',()=>{const old=PETS[petKey(st.pet)].def;st.pet=k;save('pet',k);
       if(st.name===old){st.name=sp.def;save('name',st.name);$('#set-name').value=st.name}settings();home();saveProfile();toast(`${sp.label}「${st.name}」來報到了`)});
     box.appendChild(b)});
   $('#set-name').value=st.name;if(![...$('#set-time').options].some(x=>x.value===st.time))$('#set-time').add(new Option(st.time,st.time));$('#set-time').value=st.time;$('#set-scene').value=st.scene;account();}
-$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[st.pet].def;save('name',st.name);home();saveProfile()});
+$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||(PETS[st.pet]||PETS.shiba).def;save('name',st.name);home();saveProfile()});
 $('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();home();renderPush();toast(`每晚 ${st.time} 提醒你`)});
 $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scene',st.scene);home();toast('場景已切換，回到「夥伴」看看')});
 /* ---------- nightly push (Web Push) ---------- */
@@ -753,8 +763,8 @@ function toast(t){const el=$('#toast');el.textContent=t;el.classList.add('show')
 
 /* ---------- idle animation ---------- */
 let tick=0;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-function blink(){if(st.tab!=='home'||st.mood||sleeping())return;const im=$('#pet-img');im.setAttribute('src',art(st.pet,'blink'));
-  setTimeout(()=>{if(!st.mood&&im.getAttribute('src')===art(st.pet,'blink'))im.setAttribute('src',art(st.pet,pose()))},170)}
+function blink(){if(st.tab!=='home'||st.mood||sleeping())return;const im=$('#pet-img');im.setAttribute('src',art(petKey(st.pet),'blink'));
+  setTimeout(()=>{if(!st.mood&&im.getAttribute('src')===art(petKey(st.pet),'blink'))im.setAttribute('src',art(petKey(st.pet),pose()))},170)}
 function frame(){tick++;if(tick%8===5||tick%23===0)blink();$('#pet').classList.toggle('bob',!st.mood&&!sleeping()&&tick%2===1);if(tick%60===0){applyScene();header();if(!st.mood&&st.tab==='home')home()}}
 
 /* ---------- sign in / start ---------- */

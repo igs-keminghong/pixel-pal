@@ -133,12 +133,14 @@ function message(profile: any, events: any[], tz: string, test: boolean) {
   let body: string;
   if (test) {
     const t = String(profile.remind_time || "21:00").slice(0, 5);
-    body = profile.pet === "parrot" ? `我在這裡！我在這裡！今晚 ${t} 提醒你！啾！`
+    body = profile.pet === "obsidian" ? `……叫我幹嘛。今晚 ${t} 會來找你。`
+      : profile.pet === "parrot" ? `我在這裡！我在這裡！今晚 ${t} 提醒你！啾！`
       : profile.pet === "beagle" ? `汪！我在這裡喔！今晚 ${t} 會來提醒你明天的行程！`
       : `……我在啦。今晚 ${t} 會提醒你，別睡著了。`;
     return { title: `${name} 來打招呼了`, body, icon: `assets/${profile.pet || "shiba"}_happy.png`, tag: "hello", url: "./" };
   }
-  if (profile.pet === "parrot") body = n ? `明天！明天！${n} 件事！第一件 ${first}！啾！` : "明天放假！放假！啾啾！";
+  if (profile.pet === "obsidian") body = n ? `明天 ${n} 件事。${first} 先處理，記住了。` : "明天沒事。難得放假，睡飽一點。";
+  else if (profile.pet === "parrot") body = n ? `明天！明天！${n} 件事！第一件 ${first}！啾！` : "明天放假！放假！啾啾！";
   else if (profile.pet === "beagle") body = n ? `嗅嗅！明天有 ${n} 個行程，先去 ${first}！早點睡喔！` : "明天沒有行程耶！可以睡晚一點～";
   else body = n ? `哼，明天 ${n} 件事。第一件是 ${first}，早點睡。` : "明天沒事。那我也要放空。";
   return {
