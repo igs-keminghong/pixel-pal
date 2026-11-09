@@ -548,8 +548,10 @@ function home(){bubble(homeLine());setPose(pose());
   $('#tmr-list').innerHTML=list.length?list.map(e=>rowHTML(e,false,{past:day===0&&isPast(e),next:nx&&e.id===nx.id})).join(''):
     (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你行程。</p>':`<p class="empty">${day?'明天':'今天'}沒有行程，好好休息。</p>`);}
 $('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
-function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(homeLine())},ms)}
+function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;$('#pet').classList.remove(...TAP_FX);setPose(pose());bubble(homeLine())},ms)}
 const TAP_FX=['jump','wiggle','purr','rub','huff','hop2','dance'];
+/* clear the tap effect once it has played, so a new image (pose or mascot change) doesn't replay it */
+$('#pet').addEventListener('animationend',e=>{if(TAP_FX.includes(e.animationName))$('#pet').classList.remove(...TAP_FX)});
 $('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove(...TAP_FX);void p.offsetWidth;p.classList.add(fx);
   mood('happy',1600);const arr=TAP[petKey(st.pet)];bubble(arr[Math.floor(Math.random()*arr.length)]);
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
