@@ -93,6 +93,15 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 .pet.lying.bob img{transform:none}
 .pet.lying::before{left:6%;right:6%;bottom:-6px;height:18px}
 @keyframes jump{0%,100%{transform:translateY(0)}35%{transform:translateY(-18px)}65%{transform:translateY(-10px)}}
+/* shiba: proud puff, then turns away with a "hmph", then glances back */
+.pet.huff img{animation:huff 1.5s steps(12) 1}
+@keyframes huff{0%,100%{transform:scale(1,1)}15%{transform:scale(1.05,1.05)}25%{transform:scale(1,1)}30%,75%{transform:scaleX(-1)}82%{transform:scaleX(-1) translateY(-4px)}90%{transform:scale(1,1)}}
+/* beagle: excited double bounce with squash and stretch */
+.pet.hop2 img{animation:hop2 1s steps(10) 1}
+@keyframes hop2{0%,100%{transform:translateY(0) scale(1,1)}10%{transform:scale(1.06,.92)}25%{transform:translateY(-22px) scale(.96,1.05)}40%{transform:translateY(0) scale(1.06,.92)}55%{transform:translateY(-14px) scale(.97,1.04)}70%{transform:translateY(0) scale(1.04,.95)}85%{transform:scale(1,1)}}
+/* parrot: head-bobbing side-step dance */
+.pet.dance img{animation:dance 1.6s steps(16) 1}
+@keyframes dance{0%,100%{transform:translate(0,0) rotate(0)}12%{transform:translate(-6px,-6px) rotate(-6deg)}25%{transform:translate(-6px,0) rotate(-3deg)}37%{transform:translate(0,-6px) rotate(0)}50%{transform:translate(6px,0) rotate(6deg)}62%{transform:translate(6px,-6px) rotate(3deg)}75%{transform:translate(0,0) rotate(0)}87%{transform:translateY(-8px)}}
 .bubble{position:absolute;bottom:60%;left:50%;width:max-content;max-width:min(280px,calc(100% - 12px));border:17px solid transparent;
   border-image:url(assets/bubble_body.png) 60 fill / 17px stretch;
   padding:0 6px;font-size:13.5px;line-height:1.5;color:var(--ink)}
@@ -421,9 +430,9 @@ const isLive=()=>MODE==='live';
 
 /* ---------- mascots ---------- */
 const PETS={
-  shiba:{label:'柴犬',def:'小柴',h:{idle:256,happy:258,sleep:208,alert:252}},
-  beagle:{label:'米格魯',def:'豆豆',h:{idle:219,happy:238,sleep:203,alert:241}},
-  parrot:{label:'鸚鵡',def:'啾啾',h:{idle:185,happy:218,sleep:175,alert:199}},
+  shiba:{label:'柴犬',def:'小柴',tap:'huff',h:{idle:256,happy:258,sleep:208,alert:252}},
+  beagle:{label:'米格魯',def:'豆豆',tap:'hop2',h:{idle:219,happy:238,sleep:203,alert:241}},
+  parrot:{label:'鸚鵡',def:'啾啾',tap:'dance',h:{idle:185,happy:218,sleep:175,alert:199}},
   /* 4th mascot: hidden from the picker until assets/cat_idle.png exists; sizes are read from the images */
   cat:{label:'貓咪',def:'捨令',tap:'rub',lie:{sleep:1},h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
 const AVAIL={shiba:true,beagle:true,parrot:true};
@@ -540,7 +549,8 @@ function home(){bubble(homeLine());setPose(pose());
     (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你行程。</p>':`<p class="empty">${day?'明天':'今天'}沒有行程，好好休息。</p>`);}
 $('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
 function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;setPose(pose());bubble(homeLine())},ms)}
-$('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove('jump','wiggle','purr','rub');void p.offsetWidth;p.classList.add(fx);
+const TAP_FX=['jump','wiggle','purr','rub','huff','hop2','dance'];
+$('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove(...TAP_FX);void p.offsetWidth;p.classList.add(fx);
   mood('happy',1600);const arr=TAP[petKey(st.pet)];bubble(arr[Math.floor(Math.random()*arr.length)]);
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
   for(let i=0;i<3;i++){const h=document.createElement('img');h.src='assets/ic_heart.png';h.alt='';h.className='float-heart';
