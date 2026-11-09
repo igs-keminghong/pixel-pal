@@ -21,6 +21,36 @@
    ```
    訊息裡的 `{name}` 會換成每個人自己的夥伴名字。只在有明顯更新時發，不要太頻繁。
 
+## 新增吉祥物
+
+只要改網站檔案、`git push`，**不用動 Supabase**：
+
+1. 圖片放進 `assets/`：`<key>_idle / happy / sleep / alert / blink.png`。`key` 用小寫英文（例如 `fox`）。
+2. `index.html` 的 `PETS` 加一筆（名稱、預設名字、App 內台詞）。
+3. `push-lines.json` 的 `pets` 加一筆推播台詞；沒加會先用 `default` 的通用台詞。
+4. 照上面的檢查清單發新版。
+
+---
+
+## [1.2] — 未發布
+
+### 技術變更
+
+- 推播台詞搬到網站上的 `push-lines.json`，推播程式每次執行時讀取（快取 5 分鐘）。改台詞、加吉祥物都不用重新部署推播程式。
+  - 讀不到檔案或沒寫到的吉祥物，會用內建的通用台詞，推播照常送出。
+- 資料庫的吉祥物欄位改成只檢查格式（小寫英數、底線），加吉祥物不用再改資料庫。
+
+### 上線步驟（只需做一次）
+
+```sql
+alter table public.profiles drop constraint if exists profiles_pet_check;
+alter table public.profiles add constraint profiles_pet_check
+  check (pet ~ '^[a-z][a-z0-9_]{0,23}$');
+```
+
+- 重新部署 `nightly-reminder`。
+- 網站不是放在 `https://igs-keminghong.github.io/pixel-pal/` 時，在 Edge Functions → Secrets 加 `APP_URL`。
+
 ---
 
 ## [1.1] — 2026-11-07

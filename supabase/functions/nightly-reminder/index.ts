@@ -126,27 +126,40 @@ function localMidnightUTC(tz: string, y: number, m: number, d: number) {
 const hhmm = (tz: string, iso: string) => { const p = partsIn(tz, new Date(iso)); return String(p.h).padStart(2, "0") + ":" + String(p.mi).padStart(2, "0"); };
 
 // ---- message ---------------------------------------------------------------
-function message(profile: any, events: any[], tz: string, test: boolean) {
+// Lines live in push-lines.json on the website (GitHub Pages), so adding a mascot
+// only needs a git push — no redeploy, no SQL.
+const APP_URL = (env("APP_URL") || "https://igs-keminghong.github.io/pixel-pal/").replace(/\/?$/, "/");
+const FALLBACK = {
+  hello: "嗨！我是{name}。今晚 {time} 會提醒你明天的行程喔！",
+  remind: "明天有 {n} 件事，第一件是 {first}。早點睡喔！",
+  free: "明天沒有行程，可以好好休息～",
+};
+let linesCache: any = null, linesAt = 0;
+async function loadLines() {
+  if (linesCache && Date.now() - linesAt < 5 * 60000) return linesCache;
+  try {
+    const r = await fetch(APP_URL + "push-lines.json?t=" + Math.floor(Date.now() / 60000));
+    if (r.ok) { linesCache = await r.json(); linesAt = Date.now(); }
+  } catch (e) { console.log("push-lines fetch failed", String(e)); }
+  return linesCache || { default: FALLBACK, pets: {} };
+}
+const petOf = (p: any) => (/^[a-z][a-z0-9_]{0,23}$/.test(p?.pet || "") ? p.pet : "shiba");
+function line(lines: any, pet: string, kind: string, vars: Record<string, string | number>) {
+  const t = lines.pets?.[pet]?.[kind] || lines.default?.[kind] || (FALLBACK as any)[kind];
+  return String(t).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
+function message(lines: any, profile: any, events: any[], tz: string, test: boolean) {
   const name = profile.pet_name || "夥伴";
+  const pet = petOf(profile);
   const n = events.length, f = events[0];
   const first = f ? `${f.all_day ? "整天" : hhmm(tz, f.starts_at)}「${f.title}」` : "";
-  let body: string;
-  if (test) {
-    const t = String(profile.remind_time || "21:00").slice(0, 5);
-    body = profile.pet === "cat" ? `……咦？你叫我嗎？喔對，今晚 ${t} 要提醒你。`
-      : profile.pet === "parrot" ? `我在這裡！我在這裡！今晚 ${t} 提醒你！啾！`
-      : profile.pet === "beagle" ? `汪！我在這裡喔！今晚 ${t} 會來提醒你明天的行程！`
-      : `……我在啦。今晚 ${t} 會提醒你，別睡著了。`;
-    return { title: `${name} 來打招呼了`, body, icon: `assets/${profile.pet || "shiba"}_happy.png`, tag: "hello", url: "./" };
-  }
-  if (profile.pet === "cat") body = n ? `……咦？明天好像有 ${n} 件事。第一件是 ${first}……吧？` : "明天……沒事？那就一起睡到中午吧。";
-  else if (profile.pet === "parrot") body = n ? `明天！明天！${n} 件事！第一件 ${first}！啾！` : "明天放假！放假！啾啾！";
-  else if (profile.pet === "beagle") body = n ? `嗅嗅！明天有 ${n} 個行程，先去 ${first}！早點睡喔！` : "明天沒有行程耶！可以睡晚一點～";
-  else body = n ? `哼，明天 ${n} 件事。第一件是 ${first}，早點睡。` : "明天沒事。那我也要放空。";
+  const vars = { name, n, first, time: String(profile.remind_time || "21:00").slice(0, 5) };
+  if (test) return { title: `${name} 來打招呼了`, body: line(lines, pet, "hello", vars), icon: `assets/${pet}_happy.png`, tag: "hello", url: "./" };
   return {
     title: `${name} 提醒你明天的行程`,
-    body,
-    icon: `assets/${profile.pet || "shiba"}_alert.png`,
+    body: line(lines, pet, n ? "remind" : "free", vars),
+    icon: `assets/${pet}_alert.png`,
     tag: "nightly-reminder",
     url: "./",
   };
@@ -159,7 +172,7 @@ async function remind(profile: any, subs: any[], test = false) {
   const t1 = localMidnightUTC(tz, now.y, now.m, now.d + 2);
   const events = await rest(`events?select=starts_at,title,all_day&user_id=eq.${profile.id}` +
     `&starts_at=gte.${encodeURIComponent(t0.toISOString())}&starts_at=lt.${encodeURIComponent(t1.toISOString())}&order=starts_at`);
-  const payload = JSON.stringify(message(profile, events || [], tz, test));
+  const payload = JSON.stringify(message(await loadLines(), profile, events || [], tz, test));
   let sent = 0;
   for (const s of subs) {
     try {
@@ -206,7 +219,7 @@ Deno.serve(async (req) => {
         const payload = JSON.stringify({
           title: (body.broadcast.title || "{name} 帶來新消息").replaceAll("{name}", name),
           body: String(body.broadcast.body).replaceAll("{name}", name),
-          icon: `assets/${p.pet || "shiba"}_happy.png`,
+          icon: `assets/${petOf(p)}_happy.png`,
           tag: "news",
           url: "./?from=news",
         });
