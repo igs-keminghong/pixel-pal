@@ -1,0 +1,27 @@
+{
+  "label": "鸚鵡",
+  "name": "啾啾",
+  "desc": "話很多的鸚鵡，重要的事會講兩次。被摸會開心地跳起舞來。",
+  "tap": "dance",
+  "lying": [],
+  "lines": {
+    "tap": [
+      "啾！再摸一次！",
+      "你好你好你好！",
+      "記得喝水！喝水！"
+    ],
+    "noCalendar": "明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！",
+    "todayFree": "今天放假！放假！\n啾啾！",
+    "todayNext": "下一個！下一個！\n{first}啾！",
+    "todayLast": "下一個！下一個！\n{first}啾！",
+    "tonightThenTomorrow": "明天 {n} 件事！啾！",
+    "tonightThenFree": "明天放假！啾！",
+    "tomorrow": "明天！明天！{n} 件事！\n{first}啾！",
+    "tomorrowFree": "明天放假！\n放假！啾啾！"
+  },
+  "push": {
+    "hello": "我在這裡！我在這裡！今晚 {time} 提醒你！啾！",
+    "remind": "明天！明天！{n} 件事！第一件 {first}！啾！",
+    "free": "明天放假！放假！啾啾！"
+  }
+}

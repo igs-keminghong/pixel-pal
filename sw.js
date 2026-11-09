@@ -1,18 +1,8 @@
 // 像素行程夥伴 service worker：離線快取。改了檔案後把 VERSION 加 1，手機才會抓到新版。
-const VERSION='v25';
+const VERSION='v26';
 const CACHE='pixel-pal-'+VERSION;
 const CORE=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons/icon-512.png','icons/apple-touch-icon.png','vendor/supabase-2.118.0.js',
   'assets/badge.png',
-  'assets/cat_alert.png',
-  'assets/cat_blink.png',
-  'assets/cat_happy.png',
-  'assets/cat_idle.png',
-  'assets/cat_sleep.png',
-  'assets/beagle_alert.png',
-  'assets/beagle_blink.png',
-  'assets/beagle_happy.png',
-  'assets/beagle_idle.png',
-  'assets/beagle_sleep.png',
   'assets/bg_chat.webp',
   'assets/bg_day.webp',
   'assets/bg_dusk.webp',
@@ -36,24 +26,20 @@ const CORE=['./','index.html','manifest.webmanifest','icons/icon-192.png','icons
   'assets/ic_home.png',
   'assets/ic_mail.png',
   'assets/ic_mount.png',
-  'assets/parrot_alert.png',
-  'assets/parrot_blink.png',
-  'assets/parrot_happy.png',
-  'assets/parrot_idle.png',
-  'assets/parrot_sleep.png',
   'assets/plank.png',
-  'assets/shiba_alert.png',
-  'assets/shiba_blink.png',
-  'assets/shiba_happy.png',
-  'assets/shiba_idle.png',
-  'assets/shiba_sleep.png',
   'assets/sign.png',
   'assets/star.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
+// 夥伴：依 pets/index.json 把每個夥伴資料夾一起存起來，新增夥伴不用改這個檔案
+async function precachePets(c){try{const idx=await fetch('pets/index.json',{cache:'no-cache'}).then(r=>r.json());
+  const files=['pets/index.json'];for(const k of idx.pets||[])files.push(`pets/${k}/pet.json`,...['idle','happy','sleep','alert','blink'].map(a=>`pets/${k}/${a}.png`));
+  await Promise.all(files.map(f=>c.add(f).catch(()=>{})))}catch(e){}}
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE).then(()=>precachePets(c))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;const u=new URL(r.url);
   // 頁面：先抓網路（拿到最新版），失敗才用快取
   if(r.mode==='navigate'){e.respondWith(fetch(r).then(res=>{const cp=res.clone();caches.open(CACHE).then(c=>c.put('index.html',cp));return res}).catch(()=>caches.match('index.html')));return}
+  // 設定檔（夥伴清單、台詞）：先抓網路拿最新的，離線才用快取
+  if(u.origin===location.origin&&u.pathname.endsWith('.json')){e.respondWith(fetch(r).then(res=>{if(res.ok){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res}).catch(()=>caches.match(r,{ignoreSearch:true})));return}
   // 圖片與字型：先用快取，沒有才抓網路並存起來
   if(u.origin===location.origin||/fonts\.(googleapis|gstatic)\.com/.test(u.host)){
     e.respondWith(caches.match(r).then(hit=>hit||fetch(r).then(res=>{if(res.ok||res.type==='opaque'){const cp=res.clone();caches.open(CACHE).then(c=>c.put(r,cp))}return res})))}});

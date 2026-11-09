@@ -1,0 +1,27 @@
+{
+  "label": "種類（顯示在選單，例如：狐狸）",
+  "name": "預設名字",
+  "desc": "一兩句個性介紹，會出現在更新公告。",
+  "tap": "jump",
+  "lying": [],
+  "lines": {
+    "tap": [
+      "被點時說的話 1",
+      "被點時說的話 2",
+      "被點時說的話 3"
+    ],
+    "noCalendar": "還沒連結 Google 日曆時",
+    "todayFree": "今天沒有行程時",
+    "todayNext": "今天還有好幾件事時：下一個是 {first}，還剩 {left} 件",
+    "todayLast": "今天只剩一件事時：下一個是 {first}",
+    "tonightThenTomorrow": "今晚還有行程、明天也有時，接在後面的一句：明天 {n} 件事，先去 {first}",
+    "tonightThenFree": "今晚還有行程、明天沒事時，接在後面的一句",
+    "tomorrow": "明天有行程時：明天 {n} 件事，第一件 {first}",
+    "tomorrowFree": "明天沒有行程時"
+  },
+  "push": {
+    "hello": "「打聲招呼」推播：今晚 {time} 會提醒你",
+    "remind": "每晚推播，明天有行程：{n} 件事，第一件 {first}",
+    "free": "每晚推播，明天沒有行程"
+  }
+}

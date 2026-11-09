@@ -1,0 +1,27 @@
+{
+  "label": "米格魯",
+  "name": "豆豆",
+  "desc": "熱情的米格魯，鼻子最靈。被摸會興奮地連跳兩下。",
+  "tap": "hop2",
+  "lying": [],
+  "lines": {
+    "tap": [
+      "汪！最喜歡你了！",
+      "可以吃點心嗎？",
+      "尾巴停不下來！"
+    ],
+    "noCalendar": "我還聞不到你的行程！\n去設定連結日曆吧！",
+    "todayFree": "今天沒有行程耶！\n帶我去散步嗎？",
+    "todayNext": "嗅嗅！下一個是 {first}！\n今天還有 {left} 件事！",
+    "todayLast": "嗅嗅！下一個是 {first}！\n今天最後一件了！",
+    "tonightThenTomorrow": "明天有 {n} 個行程喔！",
+    "tonightThenFree": "明天沒事，可以睡晚點。",
+    "tomorrow": "嗅嗅！明天 {n} 個行程！\n先去 {first}",
+    "tomorrowFree": "明天沒有行程耶！\n帶我去散步嗎？"
+  },
+  "push": {
+    "hello": "汪！我在這裡喔！今晚 {time} 會來提醒你明天的行程！",
+    "remind": "嗅嗅！明天有 {n} 個行程，先去 {first}！早點睡喔！",
+    "free": "明天沒有行程耶！可以睡晚一點～"
+  }
+}

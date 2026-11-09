@@ -11,7 +11,9 @@ pixel-pal/
 ├─ manifest.webmanifest  安裝到主畫面用的設定（名稱、圖示、顏色）
 ├─ sw.js                 Service Worker：離線快取
 ├─ icons/                App 圖示（主畫面、分頁標籤）
-└─ assets/               背景、吉祥物、介面元件圖
+├─ pets/                 夥伴（每隻一個資料夾：5 張圖 + pet.json）
+├─ tools/check_pets.py   檢查夥伴資料是否齊全
+└─ assets/               背景、介面元件圖
 ```
 
 純靜態網站，不需要編譯，也不需要安裝套件。
@@ -64,6 +66,10 @@ git push -u origin main
 改了任何檔案後，請把 `sw.js` 第 2 行的 `VERSION` 加 1（例如 `'v1'` → `'v2'`），
 手機下次打開時才會換成新版（有時要關掉 App 再開一次）。
 
+## 夥伴
+
+每個夥伴是 `pets/` 底下的一個資料夾（圖片 + `pet.json` 設定），新增或修改看 `pets/README.md`。
+
 ## 換圖
 
 `assets/` 裡的檔名就是程式讀取的名字，直接用同名檔案覆蓋即可，例如：
@@ -73,8 +79,6 @@ git push -u origin main
 | `bg_day / bg_dusk / bg_night.webp` | 首頁背景（依時間自動切換） |
 | `bg_room.webp` | 行程／好友／設定分頁的背景 |
 | `bg_chat.webp` | 聊天頁背景 |
-| `{shiba,beagle,parrot}_{idle,happy,sleep,alert}.png` | 三隻吉祥物的四個動作 |
-| `{shiba,beagle,parrot}_blink.png` | 眨眼圖（和 idle 同尺寸，只有眼睛不同） |
 | `frame / card / btn_wood / btn_gold / plank / sign.png` | 木框、羊皮紙、按鈕、分頁列、招牌 |
 | `bubble_body / bubble_tail.png` | 對話框（框身與尾巴分開，框身四邊等比縮放） |
 | `ic_*.png` | 圖示 |

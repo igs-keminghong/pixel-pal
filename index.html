@@ -395,7 +395,7 @@ nav.tabs .badge{position:absolute;top:-12px;right:-10px;width:22px;height:16px;b
   <!-- sign in -->
   <div class="login" id="login" hidden>
     <div class="sign login-sign"><img class="ic" src="assets/ic_cal.png" alt=""><div class="d">像素行程夥伴<small>每晚提醒你明天的行程</small></div><img class="ic" src="assets/star.png" alt=""></div>
-    <img class="login-pet" src="assets/shiba_happy.png" alt="">
+    <img class="login-pet" src="pets/shiba/happy.png" alt="">
     <div class="card login-card">
       <p>用 Google 帳號登入，就能和好友傳訊息、互相戳一下。想讓夥伴提醒明天的行程，登入後再到「設定」連結 Google 日曆。</p>
       <button class="btn gold" id="btn-login"><img src="assets/ic_cal.png" alt="">用 Google 登入</button>
@@ -428,26 +428,37 @@ const sb=window.supabase&&!window.PIXELPAL_PREVIEW?window.supabase.createClient(
 let MODE='demo', ME=null, USER=null, PROFILE=null;
 const isLive=()=>MODE==='live';
 
-/* ---------- mascots ---------- */
-const PETS={
-  shiba:{label:'柴犬',def:'小柴',tap:'huff',h:{idle:256,happy:270,sleep:208,alert:252}},
-  beagle:{label:'米格魯',def:'豆豆',tap:'hop2',h:{idle:219,happy:250,sleep:203,alert:241}},
-  parrot:{label:'鸚鵡',def:'啾啾',tap:'dance',h:{idle:185,happy:211,sleep:175,alert:199}},
-  /* 4th mascot: hidden from the picker until assets/cat_idle.png exists; sizes are read from the images */
-  cat:{label:'貓咪',def:'捨令',tap:'rub',lie:{sleep:1},h:{idle:256,happy:256,sleep:200,alert:256},auto:true}};
-const AVAIL={shiba:true,beagle:true,parrot:true};
-const petKey=p=>AVAIL[p]&&PETS[p]?p:'shiba';
-const art=(p,a)=>`assets/${p}_${a}.png`;
-Object.keys(PETS).forEach(p=>['idle','happy','sleep','alert','blink'].forEach(a=>{const im=new Image();
-  im.onload=()=>{if(PETS[p].auto&&a!=='blink'){PETS[p].h[a]=im.naturalHeight;if(a==='idle'&&!AVAIL[p]){AVAIL[p]=true;onPetsChanged()}}};
-  im.src=art(p,a)}));
-function onPetsChanged(){if(typeof settings==='function'&&$('#pets'))settings();if(typeof home==='function')try{home()}catch(e){}if(typeof friends==='function')try{friends()}catch(e){}}
+/* ---------- mascots ----------
+   Every mascot is a folder: pets/<key>/{idle,happy,sleep,alert,blink}.png + pet.json.
+   pets/index.json lists the folders (picker order; the first one is the default).
+   Adding a mascot = add a folder + one line in index.json. No code changes. */
+const PETS={},PET_ORDER=[];
+const POSES=['idle','happy','sleep','alert'];
+const DEFAULT_LINES={tap:['嘿嘿。','摸摸頭～','有什麼事嗎？'],noCalendar:'去設定連結日曆，\n我就能提醒你行程囉。',todayFree:'今天沒有行程，\n好好休息吧。',
+  todayNext:'下一個是 {first}，\n今天還有 {left} 件事。',todayLast:'下一個是 {first}，\n今天最後一件了。',tonightThenTomorrow:'明天有 {n} 件事，先去 {first}。',
+  tonightThenFree:'明天沒事，可以睡晚點。',tomorrow:'明天有 {n} 件事，\n第一件是 {first}。',tomorrowFree:'明天沒有行程，\n可以好好休息～'};
+const art=(p,a)=>`pets/${p}/${a}.png`;
+const petKey=p=>PETS[p]?p:(PET_ORDER[0]||'shiba');
+const imgSize=src=>new Promise(r=>{const im=new Image();im.onload=()=>r(im.naturalHeight);im.onerror=()=>r(0);im.src=src});
+async function loadPet(k){
+  const d=await fetch(`pets/${k}/pet.json`,{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);if(!d)return null;
+  const hs=await Promise.all(POSES.map(a=>imgSize(art(k,a))));if(!hs[0])return null;imgSize(art(k,'blink'));
+  const h={};POSES.forEach((a,i)=>h[a]=hs[i]||hs[0]);
+  return {label:d.label||k,def:d.name||k,desc:d.desc||'',tap:d.tap||'jump',lie:Object.fromEntries((d.lying||[]).map(x=>[x,1])),
+    lines:Object.assign({},DEFAULT_LINES,d.lines||{}),h};}
+async function loadPets(){
+  let keys=['shiba'];try{const idx=await fetch('pets/index.json',{cache:'no-cache'}).then(r=>r.json());if(Array.isArray(idx.pets)&&idx.pets.length)keys=idx.pets}catch(e){}
+  const got=await Promise.all(keys.map(k=>/^[a-z][a-z0-9_]{0,23}$/.test(k)?loadPet(k):null));
+  keys.forEach((k,i)=>{if(got[i]){PETS[k]=got[i];PET_ORDER.push(k)}});
+  if(!PET_ORDER.length){PETS.shiba={label:'柴犬',def:'小柴',desc:'',tap:'jump',lie:{},lines:DEFAULT_LINES,h:{idle:256,happy:256,sleep:208,alert:252}};PET_ORDER.push('shiba')}}
+/* fill {first} {n} {left} {name} in a mascot line */
+const fill=(t,v)=>String(t).replace(/\{(\w+)\}/g,(m,k)=>k in v?v[k]:m);
+const L=(key,v={})=>fill((PETS[petKey(st.pet)].lines||DEFAULT_LINES)[key]||DEFAULT_LINES[key]||'',Object.assign({name:st.name},v));
 function petImg(p,a='idle'){const im=new Image();im.src=art(petKey(p),a);im.alt='';return im}
 
 /* ---------- state ---------- */
 const st={pet:load('pet','shiba'),name:load('name',null),time:load('time','21:00'),scene:load('scene','auto'),range:0,
   userEv:load('events',[]),done:load('done',{}),unread:load('unread',{mi:1,mina:2}),chat:null,tab:'home',mood:null,liveEv:[],lastSync:load('lastSync',null),calErr:null,dayPick:null,pushOn:false};
-if(!st.name)st.name=(PETS[st.pet]||PETS.shiba).def;
 
 function dkeyOf(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function dkey(off){const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()+off);return dkeyOf(d)}
@@ -496,26 +507,18 @@ function tonight(){if(new Date().getHours()<6)return [];return evOn(dkey(0)).fil
 function autoDay(){const today=evOn(dkey(0));if(new Date()>=remindAt())return 1;
   if(!today.some(e=>e.t==='整天'||!isPast(e)))return 1;return 0}
 function panelDay(){return st.dayPick!=null?st.dayPick:autoDay()}
-function line(){const p=petKey(st.pet),day=panelDay(),T=e=>e.t==='整天'?'整天':e.t;
+function line(){const day=panelDay(),T=e=>e.t==='整天'?'整天':e.t,F=e=>`${T(e)}「${e.title}」`;
   const today=evOn(dkey(0)),tm=evOn(dkey(1)),n=tm.length,f=tm[0];
-  if(isLive()&&!calLinked()&&!today.length&&!n)return p==='cat'?'……咦？你的行程在哪裡？\n要去設定連日曆嗎……？':p==='parrot'?'明天要幹嘛？要幹嘛？\n去設定連結日曆！啾！':p==='beagle'?'我還聞不到你的行程！\n去設定連結日曆吧！':'我還不知道你要幹嘛。\n去設定連結日曆。';
+  if(isLive()&&!calLinked()&&!today.length&&!n)return L('noCalendar');
   if(day===0){const up=today.filter(e=>e.t!=='整天'&&!isPast(e)),nx=up[0]||today.find(e=>e.t==='整天'),r=up.length;
-    if(!nx)return p==='cat'?'今天……好像沒事耶。\n那我要發呆了喔。':p==='parrot'?'今天放假！放假！\n啾啾！':p==='beagle'?'今天沒有行程耶！\n帶我去散步嗎？':'今天沒事。\n那我也要放空。';
-    if(p==='cat')return `嗯……下一個是什麼來著？\n喔對，${T(nx)}「${nx.title}」。`;
-    if(p==='parrot')return `下一個！下一個！\n${T(nx)}「${nx.title}」啾！`;
-    if(p==='beagle')return `嗅嗅！下一個是 ${T(nx)}「${nx.title}」！\n${r>1?`今天還有 ${r} 件事！`:'今天最後一件了！'}`;
-    return `哼，下一個是 ${T(nx)}「${nx.title}」。\n${r>1?`今天還剩 ${r} 件事。`:'今天就剩這件了。'}`;}
+    if(!nx)return L('todayFree');
+    return L(r>1?'todayNext':'todayLast',{first:F(nx),left:r});}
   const tn=tonight(),k=tn.length;
   if(k){const head=k>1?`今晚還有 ${k} 件事，下一個 ${tn[0].t}「${tn[0].title}」！`:`今晚還有 ${tn[0].t}「${tn[0].title}」！`;
-    const tail=n?(p==='cat'?`然後明天……${T(f)}「${f.title}」？`:p==='parrot'?`明天 ${n} 件事！啾！`:p==='beagle'?`明天有 ${n} 個行程喔！`:`明天 ${n} 件事，${T(f)} 先去「${f.title}」。`):(p==='parrot'?'明天放假！啾！':'明天沒事，可以睡晚點。');
-    return head+'\n'+tail;}
-  if(p==='cat')return n?`……咦？明天有 ${n} 件事耶。\n${T(f)}「${f.title}」，好像是。`:'明天……沒事？\n那就一起睡到中午吧。';
-  if(p==='parrot')return n?`明天！明天！${n} 件事！\n${T(f)}「${f.title}」啾！`:'明天放假！\n放假！啾啾！';
-  if(p==='beagle')return n?`嗅嗅！明天 ${n} 個行程！\n先去 ${T(f)}「${f.title}」`:'明天沒有行程耶！\n帶我去散步嗎？';
-  return n?`哼，明天 ${n} 件事。\n${T(f)}「${f.title}」，早點睡。`:'明天沒事。\n那我也要放空。';}
+    return head+'\n'+(n?L('tonightThenTomorrow',{n,first:F(f)}):L('tonightThenFree'));}
+  return n?L('tomorrow',{n,first:F(f)}):L('tomorrowFree');}
 function homeLine(){if(!sleeping())return line();const tn=tonight();
   return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
-const TAP={cat:['……？','喵？（歪頭）','剛剛要說什麼……忘了。'],parrot:['啾！再摸一次！','你好你好你好！','記得喝水！喝水！'],beagle:['汪！最喜歡你了！','可以吃點心嗎？','尾巴停不下來！'],shiba:['……好啦，再摸一下。','不要一直摸。（尾巴在搖）','哼。']};
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
 function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[petKey(st.pet)].h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize(),P=petKey(st.pet);const src=art(P,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
@@ -553,7 +556,7 @@ const TAP_FX=['jump','wiggle','purr','rub','huff','hop2','dance'];
 /* clear the tap effect once it has played, so a new image (pose or mascot change) doesn't replay it */
 $('#pet').addEventListener('animationend',e=>{if(TAP_FX.includes(e.animationName))$('#pet').classList.remove(...TAP_FX)});
 $('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove(...TAP_FX);void p.offsetWidth;p.classList.add(fx);
-  mood('happy',1600);const arr=TAP[petKey(st.pet)];bubble(arr[Math.floor(Math.random()*arr.length)]);
+  mood('happy',1600);const arr=PETS[petKey(st.pet)].lines.tap||DEFAULT_LINES.tap;bubble(fill(arr[Math.floor(Math.random()*arr.length)],{name:st.name}));
   const stage=$('#stage'),r=stage.getBoundingClientRect(),pr=p.getBoundingClientRect();
   for(let i=0;i<3;i++){const h=document.createElement('img');h.src='assets/ic_heart.png';h.alt='';h.className='float-heart';
     h.style.left=(pr.left-r.left+pr.width*(.2+i*.3))+'px';h.style.top=(pr.top-r.top+($('#pet').classList.contains('lying')?-24:10)+(i%2)*16)+'px';h.style.animationDelay=(i*120)+'ms';
@@ -691,7 +694,7 @@ function chatRender(){const id=st.chat,fr=FRIENDS.find(f=>f.id===id),box=$('#msg
   box.querySelectorAll('img[data-path]').forEach(async im=>{const u=await signedUrl(im.dataset.path);if(u&&im.isConnected){im.src=u;im.onload=()=>{box.scrollTop=box.scrollHeight}}});
   box.scrollTop=box.scrollHeight;}
 function openChat(id){st.chat=id;const fr=FRIENDS.find(f=>f.id===id);
-  $('#chat-name').textContent=fr.name;$('#chat-sub').textContent=`夥伴：${(PETS[fr.pet]||PETS.shiba).label}「${fr.petName}」`;
+  $('#chat-name').textContent=fr.name;$('#chat-sub').textContent=`夥伴：${PETS[petKey(fr.pet)].label}「${fr.petName}」`;
   const av=$('#chat-av');av.innerHTML='';av.appendChild(petImg(fr.pet));$('#poke-img').src=art(petKey(fr.pet),'happy');
   if(isLive())markRead(id);else{st.unread[id]=0;save('unread',st.unread)}
   $('#chat').hidden=false;chatRender();friends();}
@@ -699,7 +702,7 @@ $('#chat-back').addEventListener('click',()=>{$('#chat').hidden=true;st.chat=nul
 function push(id,m){(MSGS[id]=MSGS[id]||[]).push(m);save('msgs',MSGS);if(st.chat===id)chatRender();}
 function fakeReply(id){setTimeout(()=>{const r=REPLY[id]||['嗨！'];push(id,{f:id,x:r[Math.floor(Math.random()*r.length)],ts:now()});
   if(st.chat!==id){st.unread[id]=(st.unread[id]||0)+1;save('unread',st.unread);friends()}},1600)}
-function pokeRun(p){if(p)$('#poke-img').src=art(PETS[p]?p:'shiba','happy');const pp=$('#poke-pop');pp.classList.remove('run');void pp.offsetWidth;pp.classList.add('run')}
+function pokeRun(p){if(p)$('#poke-img').src=art(petKey(p),'happy');const pp=$('#poke-pop');pp.classList.remove('run');void pp.offsetWidth;pp.classList.add('run')}
 $('#composer').addEventListener('submit',async e=>{e.preventDefault();const v=$('#msg-in').value.trim();if(!v)return;$('#msg-in').value='';
   if(isLive()){if(!await sendLive('text',v))$('#msg-in').value=v;return}
   push(st.chat,{f:'me',x:v,ts:now()});fakeReply(st.chat);});
@@ -739,7 +742,7 @@ const RETURNING=(()=>{try{return localStorage.getItem('ppal2:pet')!==null||local
 const verNum=v=>v.split('.').reduce((a,x)=>a*1000+(+x||0),0);
 function newsHTML(list){return list.map((n,i)=>`<div class="${i?'old':''}">
   <div class="ver"><b>版本 ${esc(n.v)}</b><span>${esc(n.date)}</span></div>
-  ${n.pets.map(p=>`<div class="hero"><div class="art"><img src="${art(p.key,'happy')}" alt=""></div><div><span class="tag">新夥伴</span><strong>${esc(p.kind)}「${esc(p.name)}」</strong><p>${esc(p.desc)}</p></div></div>`).join('')}
+  ${n.pets.filter(p=>PETS[p.key]).map(p=>{const P=PETS[p.key];return `<div class="hero"><div class="art"><img src="${art(p.key,'happy')}" alt=""></div><div><span class="tag">新夥伴</span><strong>${esc(p.kind||P.label)}「${esc(p.name||P.def)}」</strong><p>${esc(p.desc||P.desc)}</p></div></div>`}).join('')}
   <ul>${n.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`).join('')}
 function showNews(all){const seen=load('newsSeen',null),list=all===true?NEWS:all==='latest'?NEWS.slice(0,1):NEWS.filter(n=>!seen||verNum(n.v)>verNum(seen));if(!list.length)return;
   $('#news-body').innerHTML=newsHTML(list);$('#news').hidden=false;}
@@ -758,7 +761,7 @@ let saveT=null;
 function saveProfile(){if(!isLive())return;clearTimeout(saveT);saveT=setTimeout(async()=>{
   const {error}=await sb.from('profiles').update({pet:st.pet,pet_name:st.name.slice(0,12),remind_time:st.time}).eq('id',ME);
   if(error)toast('設定儲存失敗：'+error.message)},600)}
-function settings(){const box=$('#pets');box.innerHTML='';const list=Object.entries(PETS).filter(([k])=>AVAIL[k]);
+function settings(){const box=$('#pets');box.innerHTML='';const list=PET_ORDER.map(k=>[k,PETS[k]]);
   box.style.gridTemplateColumns=`repeat(${list.length>3?2:3},minmax(0,1fr))`;
   list.forEach(([k,sp])=>{const b=document.createElement('button');b.className='pick';b.setAttribute('role','radio');b.setAttribute('aria-checked',k===petKey(st.pet));
     const im=petImg(k);im.className='p';b.appendChild(im);const s=document.createElement('span');s.textContent=sp.label;b.appendChild(s);
@@ -766,7 +769,7 @@ function settings(){const box=$('#pets');box.innerHTML='';const list=Object.entr
       if(st.name===old){st.name=sp.def;save('name',st.name);$('#set-name').value=st.name}settings();home();saveProfile();toast(`${sp.label}「${st.name}」來報到了`)});
     box.appendChild(b)});
   $('#set-name').value=st.name;if(![...$('#set-time').options].some(x=>x.value===st.time))$('#set-time').add(new Option(st.time,st.time));$('#set-time').value=st.time;$('#set-scene').value=st.scene;account();}
-$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||(PETS[st.pet]||PETS.shiba).def;save('name',st.name);home();saveProfile()});
+$('#set-name').addEventListener('input',e=>{st.name=e.target.value.trim()||PETS[petKey(st.pet)].def;save('name',st.name);home();saveProfile()});
 $('#set-time').addEventListener('change',e=>{st.time=e.target.value;save('time',st.time);saveProfile();home();renderPush();toast(`每晚 ${st.time} 提醒你`)});
 $('#set-scene').addEventListener('change',e=>{st.scene=e.target.value;save('scene',st.scene);home();toast('場景已切換，回到「夥伴」看看')});
 /* ---------- nightly push (Web Push) ---------- */
@@ -864,6 +867,7 @@ async function startLive(session){MODE='live';$('#demo-chip').hidden=true;USER=s
   let want=false;try{want=sessionStorage.getItem('ppal2:wantCal')==='1';sessionStorage.removeItem('ppal2:wantCal')}catch(e){}
   if(want)doSync(true,true);else if(gtoken()&&calLinked())doSync(false);}
 async function boot(){
+  await loadPets();if(!PETS[st.pet])st.pet=petKey(st.pet);if(!st.name)st.name=PETS[st.pet].def;
   header();applyScene();home();go('home');requestAnimationFrame(()=>setPose(pose()));if(!reduce)setInterval(frame,520);
   if(!sb){startDemo();return}
   const err=new URLSearchParams(location.search).get('error_description');if(err)toast('登入失敗：'+err);

@@ -1,0 +1,27 @@
+{
+  "label": "柴犬",
+  "name": "小柴",
+  "desc": "嘴硬心軟的傲嬌柴犬。被摸會「哼」一聲轉過頭去，尾巴卻一直搖。",
+  "tap": "huff",
+  "lying": [],
+  "lines": {
+    "tap": [
+      "……好啦，再摸一下。",
+      "不要一直摸。（尾巴在搖）",
+      "哼。"
+    ],
+    "noCalendar": "我還不知道你要幹嘛。\n去設定連結日曆。",
+    "todayFree": "今天沒事。\n那我也要放空。",
+    "todayNext": "哼，下一個是 {first}。\n今天還剩 {left} 件事。",
+    "todayLast": "哼，下一個是 {first}。\n今天就剩這件了。",
+    "tonightThenTomorrow": "明天 {n} 件事，先去 {first}。",
+    "tonightThenFree": "明天沒事，可以睡晚點。",
+    "tomorrow": "哼，明天 {n} 件事。\n{first}，早點睡。",
+    "tomorrowFree": "明天沒事。\n那我也要放空。"
+  },
+  "push": {
+    "hello": "……我在啦。今晚 {time} 會提醒你，別睡著了。",
+    "remind": "哼，明天 {n} 件事。第一件是 {first}，早點睡。",
+    "free": "明天沒事。那我也要放空。"
+  }
+}

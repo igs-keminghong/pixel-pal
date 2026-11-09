@@ -126,40 +126,44 @@ function localMidnightUTC(tz: string, y: number, m: number, d: number) {
 const hhmm = (tz: string, iso: string) => { const p = partsIn(tz, new Date(iso)); return String(p.h).padStart(2, "0") + ":" + String(p.mi).padStart(2, "0"); };
 
 // ---- message ---------------------------------------------------------------
-// Lines live in push-lines.json on the website (GitHub Pages), so adding a mascot
-// only needs a git push — no redeploy, no SQL.
+// Lines live on the website in pets/<key>/pet.json ("push" section), so adding a mascot
+// or editing its lines only needs a git push — no redeploy, no SQL.
 const APP_URL = (env("APP_URL") || "https://igs-keminghong.github.io/pixel-pal/").replace(/\/?$/, "/");
 const FALLBACK = {
   hello: "嗨！我是{name}。今晚 {time} 會提醒你明天的行程喔！",
   remind: "明天有 {n} 件事，第一件是 {first}。早點睡喔！",
   free: "明天沒有行程，可以好好休息～",
 };
-let linesCache: any = null, linesAt = 0;
-async function loadLines() {
-  if (linesCache && Date.now() - linesAt < 5 * 60000) return linesCache;
-  try {
-    const r = await fetch(APP_URL + "push-lines.json?t=" + Math.floor(Date.now() / 60000));
-    if (r.ok) { linesCache = await r.json(); linesAt = Date.now(); }
-  } catch (e) { console.log("push-lines fetch failed", String(e)); }
-  return linesCache || { default: FALLBACK, pets: {} };
+const petCache: Record<string, { at: number; push: any; ok: boolean }> = {};
+const validPet = (k: string) => /^[a-z][a-z0-9_]{0,23}$/.test(k || "");
+async function loadPet(pet: string) {
+  const hit = petCache[pet];
+  if (hit && Date.now() - hit.at < 5 * 60000) return hit;
+  let push: any = null, ok = false;
+  if (validPet(pet)) {
+    try {
+      const r = await fetch(`${APP_URL}pets/${pet}/pet.json?t=${Math.floor(Date.now() / 60000)}`);
+      if (r.ok) { const d = await r.json(); push = d.push || {}; ok = true; }
+    } catch (e) { console.log("pet.json fetch failed", pet, String(e)); }
+  }
+  return (petCache[pet] = { at: Date.now(), push: push || {}, ok });
 }
-const petOf = (p: any) => (/^[a-z][a-z0-9_]{0,23}$/.test(p?.pet || "") ? p.pet : "shiba");
-function line(lines: any, pet: string, kind: string, vars: Record<string, string | number>) {
-  const t = lines.pets?.[pet]?.[kind] || lines.default?.[kind] || (FALLBACK as any)[kind];
+const iconOf = (pet: string, ok: boolean, pose: string) => (ok ? `pets/${pet}/${pose}.png` : "icons/icon-192.png");
+function line(push: any, kind: string, vars: Record<string, string | number>) {
+  const t = push?.[kind] || (FALLBACK as any)[kind];
   return String(t).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 }
 
-function message(lines: any, profile: any, events: any[], tz: string, test: boolean) {
+function message(pet: any, profile: any, events: any[], tz: string, test: boolean) {
   const name = profile.pet_name || "夥伴";
-  const pet = petOf(profile);
   const n = events.length, f = events[0];
   const first = f ? `${f.all_day ? "整天" : hhmm(tz, f.starts_at)}「${f.title}」` : "";
   const vars = { name, n, first, time: String(profile.remind_time || "21:00").slice(0, 5) };
-  if (test) return { title: `${name} 來打招呼了`, body: line(lines, pet, "hello", vars), icon: `assets/${pet}_happy.png`, tag: "hello", url: "./" };
+  if (test) return { title: `${name} 來打招呼了`, body: line(pet.push, "hello", vars), icon: iconOf(profile.pet, pet.ok, "happy"), tag: "hello", url: "./" };
   return {
     title: `${name} 提醒你明天的行程`,
-    body: line(lines, pet, n ? "remind" : "free", vars),
-    icon: `assets/${pet}_alert.png`,
+    body: line(pet.push, n ? "remind" : "free", vars),
+    icon: iconOf(profile.pet, pet.ok, "alert"),
     tag: "nightly-reminder",
     url: "./",
   };
@@ -172,7 +176,7 @@ async function remind(profile: any, subs: any[], test = false) {
   const t1 = localMidnightUTC(tz, now.y, now.m, now.d + 2);
   const events = await rest(`events?select=starts_at,title,all_day&user_id=eq.${profile.id}` +
     `&starts_at=gte.${encodeURIComponent(t0.toISOString())}&starts_at=lt.${encodeURIComponent(t1.toISOString())}&order=starts_at`);
-  const payload = JSON.stringify(message(await loadLines(), profile, events || [], tz, test));
+  const payload = JSON.stringify(message(await loadPet(profile.pet), profile, events || [], tz, test));
   let sent = 0;
   for (const s of subs) {
     try {
@@ -219,7 +223,7 @@ Deno.serve(async (req) => {
         const payload = JSON.stringify({
           title: (body.broadcast.title || "{name} 帶來新消息").replaceAll("{name}", name),
           body: String(body.broadcast.body).replaceAll("{name}", name),
-          icon: `assets/${petOf(p)}_happy.png`,
+          icon: iconOf(p.pet, (await loadPet(p.pet)).ok, "happy"),
           tag: "news",
           url: "./?from=news",
         });
