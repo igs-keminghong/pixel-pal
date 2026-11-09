@@ -39,7 +39,7 @@ pets/
 | `label` | 種類，顯示在選單（例如「狐狸」） |
 | `name` | 預設名字，玩家可以自己改 |
 | `desc` | 一兩句個性介紹，顯示在更新公告的新夥伴卡片 |
-| `tap` | 被點時的動作：`jump` 跳、`wiggle` 搖晃、`purr` 呼嚕、`rub` 蹭蹭、`huff` 哼一聲轉身、`hop2` 連跳兩下、`dance` 跳舞 |
+| `tap` | 被點時的動作：`jump` 跳、`wiggle` 搖晃、`purr` 呼嚕、`rub` 蹭蹭、`huff` 哼一聲轉身、`hop2` 連跳兩下、`dance` 跳舞、`jingle` 搖鈴 |
 | `lying` | 哪些姿勢是躺著的（例如 `["sleep"]`），躺姿會用較寬的影子 |
 | `lines` | App 首頁台詞，見下表 |
 | `push` | 推播台詞：`hello` 打聲招呼、`remind` 明天有行程、`free` 明天沒行程 |

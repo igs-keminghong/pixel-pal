@@ -99,6 +99,9 @@ main{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column
 /* beagle: excited double bounce with squash and stretch */
 .pet.hop2 img{animation:hop2 1s steps(10) 1}
 @keyframes hop2{0%,100%{transform:translateY(0) scale(1,1)}10%{transform:scale(1.06,.92)}25%{transform:translateY(-22px) scale(.96,1.05)}40%{transform:translateY(0) scale(1.06,.92)}55%{transform:translateY(-14px) scale(.97,1.04)}70%{transform:translateY(0) scale(1.04,.95)}85%{transform:scale(1,1)}}
+/* fox: quick little shake, like a bell ringing */
+.pet.jingle img{animation:jingle 1.2s steps(12) 1}
+@keyframes jingle{0%,100%{transform:rotate(0)}8%{transform:rotate(-4deg)}16%{transform:rotate(4deg)}24%{transform:rotate(-3deg)}32%{transform:rotate(3deg)}40%{transform:rotate(0) translateY(-6px)}55%{transform:translateY(0)}70%{transform:rotate(-2deg)}80%{transform:rotate(2deg)}90%{transform:rotate(0)}}
 /* parrot: head-bobbing side-step dance */
 .pet.dance img{animation:dance 1.6s steps(16) 1}
 @keyframes dance{0%,100%{transform:translate(0,0) rotate(0)}12%{transform:translate(-6px,-6px) rotate(-6deg)}25%{transform:translate(-6px,0) rotate(-3deg)}37%{transform:translate(0,-6px) rotate(0)}50%{transform:translate(6px,0) rotate(6deg)}62%{transform:translate(6px,-6px) rotate(3deg)}75%{transform:translate(0,0) rotate(0)}87%{transform:translateY(-8px)}}
@@ -552,7 +555,7 @@ function home(){bubble(homeLine());setPose(pose());
     (isLive()&&!calLinked()?'<p class="empty">還沒連結 Google 日曆。到「設定」按「連結日曆」，夥伴就能提醒你行程。</p>':`<p class="empty">${day?'明天':'今天'}沒有行程，好好休息。</p>`);}
 $('#day-toggle').addEventListener('click',()=>{st.dayPick=1-panelDay();home()});
 function mood(m,ms){st.mood=m;setPose(m);clearTimeout(mood._t);mood._t=setTimeout(()=>{st.mood=null;$('#pet').classList.remove(...TAP_FX);setPose(pose());bubble(homeLine())},ms)}
-const TAP_FX=['jump','wiggle','purr','rub','huff','hop2','dance'];
+const TAP_FX=['jump','wiggle','purr','rub','huff','hop2','dance','jingle'];
 /* clear the tap effect once it has played, so a new image (pose or mascot change) doesn't replay it */
 $('#pet').addEventListener('animationend',e=>{if(TAP_FX.includes(e.animationName))$('#pet').classList.remove(...TAP_FX)});
 $('#pet').addEventListener('click',()=>{const p=$('#pet'),fx=PETS[petKey(st.pet)].tap||'jump';p.classList.remove(...TAP_FX);void p.offsetWidth;p.classList.add(fx);

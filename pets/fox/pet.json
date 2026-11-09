@@ -1,0 +1,29 @@
+{
+  "label": "狐狸",
+  "name": "白玉",
+  "desc": "從神社來的白狐，沉穩又有點神秘，喜歡裝大人。被摸時脖子上的鈴鐺會鈴鈴作響。",
+  "tap": "jingle",
+  "lying": [
+    "sleep"
+  ],
+  "lines": {
+    "tap": [
+      "呵呵，摸頭要付香油錢喔。",
+      "（鈴鈴）……好吧，就讓你摸一下。",
+      "別小看我，我可是活了很久的狐狸。"
+    ],
+    "noCalendar": "我看不見你的行程呢。\n去設定連結日曆吧。",
+    "todayFree": "今天沒有安排，\n難得清閒，好好休息吧。",
+    "todayNext": "下一個是 {first}。\n今天還有 {left} 件事，別慌。",
+    "todayLast": "最後一件，{first}。\n結束就好好休息吧。",
+    "tonightThenTomorrow": "明天有 {n} 件事，先是 {first}。",
+    "tonightThenFree": "明天沒有安排，可以睡晚一點。",
+    "tomorrow": "明天有 {n} 件事，\n第一件是 {first}。早點睡吧。",
+    "tomorrowFree": "明天沒有安排。\n呵呵，那就陪我賞月吧。"
+  },
+  "push": {
+    "hello": "（鈴鈴）是我，{name}。今晚 {time} 會來提醒你。",
+    "remind": "明天有 {n} 件事，第一件是 {first}。早點休息吧。（鈴鈴）",
+    "free": "明天沒有安排呢。今晚就好好睡吧。"
+  }
+}
