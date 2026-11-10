@@ -48,11 +48,12 @@ img{-webkit-user-drag:none}
 .gut{padding-left:max(14px,env(safe-area-inset-left,0px));padding-right:max(14px,env(safe-area-inset-right,0px))}
 
 /* ---------- art pieces ---------- */
-.frame{border:26px solid transparent;border-image:url(assets/frame.png) 72 fill / 26px stretch}
-.card{border:14px solid transparent;border-image:url(assets/card.png) 40 fill / 14px stretch}
+/* slices keep the flowers, leaves and nails inside the corners so only plain wood/parchment is stretched */
+.frame{border:26px solid transparent;border-image:url(assets/frame.png) 112 175 140 200 fill / 40px 63px 51px 72px stretch}
+.card{border:14px solid transparent;border-image:url(assets/card.png) 40 40 40 130 fill / 14px 14px 14px 45px stretch}
 .wood{border:12px solid transparent;border-image:url(assets/btn_wood.png) 40 fill / 12px stretch;color:var(--cream);text-shadow:0 2px 0 var(--shade)}
 .gold{border:12px solid transparent;border-image:url(assets/btn_gold.png) 40 fill / 12px stretch;color:#5A2E10;text-shadow:0 1px 0 rgba(255,240,200,.7)}
-.plank{border:18px solid transparent;border-image:url(assets/plank.png) 60 fill / 18px stretch}
+.plank{border:18px solid transparent;border-image:url(assets/plank.png) 84 60 68 60 fill / 25px 18px 20px 18px round stretch}
 .btn{font-family:var(--f-pixel);font-size:15px;padding:0 10px;min-height:22px;line-height:22px;background:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap}
 .btn:active{transform:translateY(2px)}
 .btn img{height:20px;width:auto}
@@ -159,7 +160,7 @@ h2{font-family:var(--f-pixel);font-weight:400;font-size:17px;margin:0;color:var(
 .fr .meta{min-width:0}
 .fr .meta strong{display:flex;align-items:center;gap:6px;font-weight:500}
 .fr .meta span{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.dot{min-width:22px;height:20px;padding:0 4px;background:url(assets/badge.png) center/100% 100% no-repeat;color:#fff;font-family:var(--f-pixel);font-size:12px;display:inline-grid;place-items:center}
+.dot{min-width:22px;height:20px;padding:0;box-sizing:border-box;border:6px solid transparent;border-width:6px 8px;border-image:url(assets/badge.png) 30 40 fill / 6px 8px stretch;line-height:1;color:#fff;font-family:var(--f-pixel);font-size:12px;display:inline-grid;place-items:center}
 
 /* ---------- settings ---------- */
 .pets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
