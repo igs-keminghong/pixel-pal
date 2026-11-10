@@ -52,6 +52,9 @@ for k in keys:
             errors.append(f"{k}: pet.json 缺少 {f}")
     if pj.get("tap", "jump") not in TAPS:
         errors.append(f"{k}: tap 只能是 {', '.join(TAPS)}")
+    sc = pj.get("scale", 1)
+    if not isinstance(sc, (int, float)) or not 0.5 <= sc <= 2:
+        errors.append(f"{k}: scale 要是 0.5 到 2 之間的數字")
     lines = pj.get("lines", {})
     for f in LINES:
         if f not in lines:

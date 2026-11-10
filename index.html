@@ -447,7 +447,7 @@ async function loadPet(k){
   const d=await fetch(`pets/${k}/pet.json`,{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);if(!d)return null;
   const hs=await Promise.all(POSES.map(a=>imgSize(art(k,a))));if(!hs[0])return null;imgSize(art(k,'blink'));
   const h={};POSES.forEach((a,i)=>h[a]=hs[i]||hs[0]);
-  return {label:d.label||k,def:d.name||k,desc:d.desc||'',tap:d.tap||'jump',lie:Object.fromEntries((d.lying||[]).map(x=>[x,1])),
+  return {label:d.label||k,def:d.name||k,desc:d.desc||'',tap:d.tap||'jump',scale:Math.min(2,Math.max(.5,+d.scale||1)),lie:Object.fromEntries((d.lying||[]).map(x=>[x,1])),
     lines:Object.assign({},DEFAULT_LINES,d.lines||{}),h};}
 async function loadPets(){
   let keys=['shiba'];try{const idx=await fetch('pets/index.json',{cache:'no-cache'}).then(r=>r.json());if(Array.isArray(idx.pets)&&idx.pets.length)keys=idx.pets}catch(e){}
@@ -523,7 +523,7 @@ function line(){const day=panelDay(),T=e=>e.t==='整天'?'整天':e.t,F=e=>`${T(
 function homeLine(){if(!sleeping())return line();const tn=tonight();
   return tn.length?`Zzz……\n（今晚 ${tn[0].t} 還有「${tn[0].title}」喔）`:'Zzz……（明天的事，明天再說）'}
 function bubble(txt){$('#bubble').innerHTML=`<b>${esc(st.name)}</b>${esc(txt).replace(/「([^」\n]{1,12})」/g,'<span class="nw">「$1」</span>').replace(/\n/g,'<br>')}<img class="tail" src="assets/bubble_tail.png" alt="">`;if($('#pet-img').getAttribute('src'))setPose(pose())}
-function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));return target/PETS[petKey(st.pet)].h.idle}
+function petSize(){const stage=$('#stage');const H=stage.clientHeight||260;const target=Math.min(170,Math.max(84,H*.46));const P=PETS[petKey(st.pet)];return target*(P.scale||1)/P.h.idle}
 function setPose(pose){const im=$('#pet-img'),k=petSize(),P=petKey(st.pet);const src=art(P,pose);if(im.getAttribute('src')!==src)im.setAttribute('src',src);
   $('#pet').classList.toggle('lying',!!(PETS[P].lie&&PETS[P].lie[pose]));
   const h=Math.round(PETS[P].h[pose]*k);im.style.height=h+'px';
