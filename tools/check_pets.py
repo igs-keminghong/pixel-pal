@@ -6,7 +6,7 @@ POSES = ["idle", "happy", "sleep", "alert", "blink"]
 LINES = ["tap", "noCalendar", "todayFree", "todayNext", "todayLast", "tonightThenTomorrow",
          "tonightThenFree", "tomorrow", "tomorrowFree"]
 PUSH = ["hello", "remind", "free"]
-TAPS = ["jump", "wiggle", "purr", "rub", "huff", "hop2", "dance", "jingle"]
+TAPS = ["jump", "wiggle", "purr", "rub", "huff", "hop2", "dance", "jingle", "roar"]
 
 def png_size(path):
     with open(path, "rb") as f:
